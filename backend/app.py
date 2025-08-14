@@ -300,13 +300,11 @@ def update_application_status(current_user, application_id):
         if not new_status:
             return jsonify({'error': 'Status is required'}), 400
         
-        # Update application
         update_data = {
             'status': new_status,
             'updatedAt': datetime.utcnow()
         }
         
-        # Add timeline entry
         timeline_entry = {
             'status': new_status,
             'date': datetime.now().strftime('%Y-%m-%d'),
@@ -394,7 +392,74 @@ def register_vehicle(current_user):
         print(f"Register vehicle error: {str(e)}")
         return {'error': 'Internal server error'}, 500
 
-@app.route('/api/vehicles', methods=['GET'])
+@app.route("/api/vehicles", methods=["GET"])
+@token_required
+def get_client_vehicles(current_user):
+    try:
+        id = current_user["_id"]
+        page = max(1, int(request.args.get('page', 1)))  
+        limit = min(50, max(1, int(request.args.get('limit', 10))))       
+        skip = (page - 1) * limit
+        
+        total = vehicles_collection.count_documents({"ownerID": str(id)})
+        total_pages = (total + limit - 1) // limit if total > 0 else 1
+        
+        if page > total_pages and total > 0:
+            return {
+                "success": False,
+                "message": f"Page {page} not found. Maximum page is {total_pages}"
+            }, 404
+        
+        vehicles = list(
+            vehicles_collection.find({"ownerID": str(id)})
+            .skip(skip)
+            .limit(limit)
+            .sort('registrationNumber', 1)
+        )
+        
+        trimmed_vehicles = []
+        for vehicle in vehicles:
+            trimmed_vehicle = {
+                "_id": str(vehicle['_id']), 
+                "registrationNumber": vehicle["registrationNumber"],
+                "make": vehicle["make"],
+                "model": vehicle["model"],
+                "insuranceCompany": vehicle["insuranceCompany"],
+                "driverName": vehicle.get("driverName")
+            }
+            trimmed_vehicles.append(trimmed_vehicle)
+        
+        pagination = {
+            "current_page": page,
+            "total_pages": total_pages,
+            "total_items": total,
+            "has_previous": page > 1,
+            "has_next": page < total_pages,
+            "previous_page": page - 1 if page > 1 else None,
+            "next_page": page + 1 if page < total_pages else None,
+        }
+        
+        return {
+            "success": True,
+            "results": trimmed_vehicles,
+            "pagination": pagination
+        }, 200
+    
+    except ValueError:
+        return {
+            "success": False,
+            "message": "Invalid page or limit parameter. Must be integers."
+        }, 400
+    
+    except Exception as e:
+        app.logger.error(f"Error in get_client_vehicles: {str(e)}")
+        return {
+            "success": False,
+            "message": "An error occurred while fetching vehicles"
+        }, 500
+    
+@app.route('/api/admin/vehicles', methods=['GET'])
+@admin_required
 def get_vehicles():
     try:
         # Get query parameters
