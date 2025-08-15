@@ -10,14 +10,11 @@ import Applications from "@/components/tabs/client/Applications"
 import Vehicles from "@/components/tabs/client/Vehicles"
 import Profile from "@/components/tabs/client/Profile"
 import TrackApplication from "@/components/general/ClientTrackApplication"
+import { useEffect, useState } from "react"
 
 export default function ClientDashboardPage() {
   const {  
     user,
-    applications,
-    vehicles,
-    router,
-    fetchUserData,
     handleLogout
   }  = useClient();
   const getStatusIcon = (status: string) => {
@@ -82,9 +79,9 @@ export default function ClientDashboardPage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         
         <ClientCards
-          applications ={applications.length}
+          applications ={55}
           activePermits = {4}
-          registeredVehicles = {vehicles.length}
+          registeredVehicles = {55}
           pendingReviews = {4}
         />
         <TrackApplication getStatusBadge = {getStatusBadge} getStatusIcon={getStatusIcon}/>
@@ -95,14 +92,11 @@ export default function ClientDashboardPage() {
             <TabsTrigger value="profile">Profile</TabsTrigger>
           </TabsList>
           <Applications 
-            applications={applications}
             getStatusBadge={getStatusBadge}
             getStatusIcon={getStatusIcon}
 
           />
-          <Vehicles
-            vehicles={vehicles}
-          />
+          <Vehicles/>
           <Profile user = {{email : "client@client.com", role :"Admin"}}/>
         </Tabs>
       </main>

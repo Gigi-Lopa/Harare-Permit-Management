@@ -1,19 +1,30 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { TabsContent } from "@/components/ui/tabs"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
-import { Clock,AlertCircle, CheckCircle, Plus, Download } from "lucide-react"
+import { Clock,AlertCircle, CheckCircle, Plus, Download , ChevronLeft, ChevronRight} from "lucide-react"
 import { Application } from '@/types'
+import useClient from '@/hooks/useClients'
 
 interface props{
-    applications : Application[],
+  
     getStatusIcon : (value:string) => React.ReactNode,
     getStatusBadge  : (value: string) => React.ReactNode
 }
 
-function Applications({applications, getStatusIcon, getStatusBadge}: props) {
-  
+function Applications({ getStatusIcon, getStatusBadge}: props) {
+  const {    
+  applications,
+  pagination,
+  getApplicationsStatus,
+  getUserApplications} =useClient() 
+  const [page, setPage] = useState(1)
+
+  useEffect(()=>{
+    getUserApplications(page)
+  }, [page])
+
   return (
        <TabsContent value="applications" className="space-y-6">
             <div className="flex justify-between items-center">
@@ -57,6 +68,29 @@ function Applications({applications, getStatusIcon, getStatusBadge}: props) {
                 </Card>
               ))}
             </div>
+            {pagination && (
+              <div className='w-full flex flex-row items-center justify-center'>
+                <Button
+                  variant="ghost"
+                  disabled={!pagination.has_previous}
+                  onClick={() => setPage(pagination.previous_page || 1)}
+                >
+                  <ChevronLeft className='h-4 w-4' />
+                </Button>
+
+                <p className='text-gray-600'>
+                  {pagination.current_page} / {pagination.total_pages}
+                </p>
+
+                <Button
+                  variant="ghost"
+                  disabled={!pagination.has_next}
+                  onClick={() => setPage(pagination.next_page || pagination.total_pages)}
+                >
+                  <ChevronRight className='h-4 w-4' />
+                </Button>
+              </div>
+            )}
           </TabsContent>
   )
 }

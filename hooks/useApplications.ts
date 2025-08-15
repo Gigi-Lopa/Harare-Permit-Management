@@ -23,7 +23,6 @@ export default function useApplication(){
     vehicleDocuments: null,
     insuranceCertificates: null,
     driversLicenses: null,
-    ownerID : ""
   })
 
 

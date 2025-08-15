@@ -2,7 +2,6 @@
 
 import type React from "react"
 
-import { useRef, useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,136 +10,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { ArrowLeft, Upload, FileText, Bus, AlertCircle, CheckCircle } from "lucide-react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { LocalUser } from "@/types"
-import useGetUserInfor from "@/hooks/useGetUserInfor"
+import useVehicles from "@/hooks/useVehicles"
 
 export default function RegisterVehiclePage() {
-  const [user, setUser] = useState<LocalUser | null>(null)
-  const [formData, setFormData] = useState({
-    registrationNumber: "",
-    make: "",
-    model: "",
-    year: "",
-    capacity: "",
-    engineNumber: "",
-    chassisNumber: "",
-    color: "",
-    fuelType: "diesel",
-    insuranceCompany: "",
-    insurancePolicyNumber: "",
-    insuranceExpiryDate: "",
-    roadworthyExpiryDate: "",
-    operatingRoute: "",
-    driverName: "",
-    driverLicenseNumber: "",
-    driverLicenseExpiry: "",
-    agreeToTerms: false,
-    vehicleDocuments: null,
-    insuranceCertificates: null,  
-    driversLicenses: null,
-    ownerID: "",
-  })
-
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState("")
-  const [success, setSuccess] = useState("")
-  const router = useRouter()
-
-  const vehicleMakes = [
-    "Toyota",
-    "Nissan",
-    "Isuzu",
-    "Mercedes-Benz",
-    "Volkswagen",
-    "Ford",
-    "Mitsubishi",
-    "Hyundai",
-    "Other",
-  ]
-
-  const routes = [
-    "CBD - Chitungwiza",
-    "CBD - Mbare",
-    "CBD - Kuwadzana",
-    "CBD - Budiriro",
-    "CBD - Glen View",
-    "CBD - Highfield",
-    "CBD - Waterfalls",
-    "CBD - Epworth",
-    "CBD - Dzivaresekwa",
-  ]
-
-  const driversLicensesRef = useRef<HTMLInputElement>(null)
-  const vehicleRegistrationCertificateRef =  useRef<HTMLInputElement>(null)
-  const insuranceCertificatesRef = useRef<HTMLInputElement>(null)
-
- const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setLoading(true);
-  setError("");
-  setSuccess("");
-
-  try {
-    const fd = new FormData();
-
-    Object.entries(formData).forEach(([key, value]) => {
-      if (value !== null && value !== undefined) {
-        fd.append(key, typeof value === "boolean" ? String(value) : value as string | Blob);
-      }
-    });
-
-    if (formData.vehicleDocuments) {
-      fd.append("vehicleDocuments", formData.vehicleDocuments);
-    }
-    if (formData.insuranceCertificates) {
-      fd.append("insuranceCertificates", formData.insuranceCertificates);
-    }
-    if (formData.driversLicenses) {
-      fd.append("driversLicenses", formData.driversLicenses);
-    }
-
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/vehicles/register`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${user?.token_payload}`,
-        },
-        body: fd,
-      }
-    );
-
-    const data = await response.json();
-
-    if (response.ok) {
-      setSuccess(
-        "Vehicle registered successfully! It will be reviewed by the authorities."
-      );
-      setTimeout(() => {
-        router.push("/client/dashboard");
-      }, 3000);
-    } else {
-      setError(data.error || "Vehicle registration failed");
-    }
-  } catch (err) {
-    setError("Network error. Please try again.");
-  } finally {
-    setLoading(false);
-  }
-};
-
-  useEffect(() => {
-    const user = useGetUserInfor()
-      if(user){
-        setUser(user);
-      } else {
-        router.replace("/")
-      }
-   }, [])
-  const handleInputChange = (field: string, value: any) => {
-    setFormData((prev) => ({ ...prev, [field]: value }))
-  }
+  const {
+    formData,
+    loading,
+    error,
+    success,
+    vehicleMakes,
+    routes,
+    driversLicensesRef,
+    vehicleRegistrationCertificateRef, 
+    insuranceCertificatesRef,
+    handleSubmit,
+    handleInputChange 
+  } = useVehicles();
 
   return (
     <div className="min-h-screen bg-gray-50">

@@ -1,13 +1,21 @@
-import type { Application, LocalUser, Vehicle } from "@/types"
+import type { Application, DashboardStats, LocalUser, Pagination } from "@/types"
 import { useRouter } from "next/navigation"
-import { useState, useEffect } from "react"
+import { useState, useEffect, use } from "react"
 import useGetUserInfor from "./useGetUserInfor"
 
 export default function useClient(){
   const [user, setUser] = useState<LocalUser | null>(null)
   const [applications, setApplications] = useState<Application[]>([])
-  const [vehicles, setVehicles] = useState<Vehicle[]>([])
   const [notifications, setNotifications] = useState([])
+  const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null)
+  const [pagination, setPagination] = useState<Pagination | null>(null);
+  
+  const [getApplicationsStatus, setGetApplicationStatus] = useState({
+    loading : true,
+    error : false,
+    empty : false
+  })
+
   const router = useRouter()    
 
   useEffect(() => {
@@ -17,58 +25,65 @@ export default function useClient(){
         } else {
           router.replace("/")
         }
-    fetchUserData()
+    getDashbaord(user?.token_payload || "")
   }, [])
 
-  const fetchUserData = async () => {
-    setApplications([
-      {
-        id: "PRM-2024-001",
-        route: "CBD - Chitungwiza",
-        status: "under_review",
-        submittedDate: "2024-01-15",
-        vehicleCount: 5,
-      },
-      {
-        id: "PRM-2024-005",
-        route: "CBD - Glen View",
-        status: "approved",
-        submittedDate: "2024-01-08",
-        vehicleCount: 3,
-      },
-    ])
-
-    setVehicles([
-      {
-        id: "VEH-001",
-        registrationNumber: "AEZ 1234",
-        model: "Toyota Hiace",
-        status: "active",
-        lastInspection: "2024-01-01",
-      },
-      {
-        id: "VEH-002",
-        registrationNumber: "AEZ 5678",
-        model: "Nissan Caravan",
-        status: "maintenance",
-        lastInspection: "2023-12-15",
-      },
-    ])
+  const getUserApplications = async (page: number) => {
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/applications?page=${page}`, {
+        method : "GET",
+        headers  :{
+          "Authorization" : useGetUserInfor()?.token_payload || ""
+        }
+      })
+      .then(response => response.json())
+      .then(response => {
+        if(response.success){
+            setApplications(response.results)
+            setGetApplicationStatus(prev => ({
+            ...prev,
+            empty: !response.results || response.results.length === 0
+            }));
+            setPagination(response.pagination)
+            return;
+        }
+    })
+    .catch(error =>{
+        console.log(error)
+        setGetApplicationStatus((prev)=>({...prev, error : false}))
+    })
+    .finally(()=>setGetApplicationStatus((prev)=> ({...prev, loading : false})))
   }
 
   const handleLogout = () => {
     localStorage.removeItem("token")
     localStorage.removeItem("user")
     router.push("/")
+  } 
+
+  const getDashbaord = (token: string) =>{
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/client/dashboard`, {
+      method : "GET",
+      headers  :{
+        "Authorization" : token
+      }
+    })
+    .then(response => response.json())
+    .then(response => {
+      if(response.success){
+        setDashboardStats(response.stats)
+      }
+    })
   }
 
   return {
     notifications,
     user,
     applications,
-    vehicles,
     router,
-    fetchUserData,
+    dashboardStats,
+    pagination,
+    getApplicationsStatus,
+    getUserApplications,
     handleLogout
   }
 }
