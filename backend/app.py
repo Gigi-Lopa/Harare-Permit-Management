@@ -187,34 +187,88 @@ def login():
         print(f"Login error: {str(e)}")
         return jsonify({'message': 'Internal server error'}), 500
 
-@app.route('/api/applications', methods=['GET'])
+@app.route("/api/client/dashboard", methods = ["GET"])
 @token_required
-def get_applications(current_user):
+def get_client_dashboard(current_user):
     try:
-        status = request.args.get('status')
-        page = int(request.args.get('page', 1))
-        limit = int(request.args.get('limit', 10))
-        
-        query = {}
-        if status and status != 'all':
-            query['status'] = status
-        
-        skip = (page - 1) * limit
-        applications = list(applications_collection.find(query).skip(skip).limit(limit))
-        total = applications_collection.count_documents(query)
-        
-        for app in applications:
-            app['_id'] = str(app['_id'])
-        
-        return {
-            'applications': applications,
-            'total': total,
-            'page': page,
-            'pages': (total + limit - 1) // limit
-        }
+        id = str(current_user.get("_id"))
+        totalApplications = applications_collection.count_documents({"ownerID" : id})
+        activePermits = applications_collection.count_documents({"ownerID" : id, "status" : "active"})
+        registeredVehicles = vehicles_collection.count_documents({"ownerID" : id, "status" : "approved"})
+        pendingReviews = applications_collection.count_documents({"ownerID" : id , "status" : "pending"})
+
+        return{
+            "success" : True,
+            "stats" : {
+                "totalApplications" : totalApplications,
+                "activePermits" : activePermits,
+                "registeredVehicles" : registeredVehicles,
+                "pendingReviews" : pendingReviews
+            }
+        }, 200
     
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        pprint("Error fetching client dashbaord :" + e)
+        return {
+            "success" : False,
+            "message" : "Something happened proobably your fault too"
+        }, 401
+
+@app.route('/api/applications', methods=['GET'])
+@token_required
+def get_client_applications(current_user):
+    try:
+        id = str(current_user["_id"])
+        page = max(1, int(request.args.get('page', 1)))  
+        limit = min(50, max(1, int(request.args.get('limit', 10))))       
+        skip = (page - 1) * limit
+        
+        total = applications_collection.count_documents({"ownerID": str(id)})
+        total_pages = (total + limit - 1) // limit if total > 0 else 1
+        
+        if page > total_pages and total > 0:
+            return {
+                "success": False,
+                "message": f"Page {page} not found. Maximum page is {total_pages}"
+            }, 404
+        
+        applications = list(
+            applications_collection.find({"ownerID": str(id)})
+            .skip(skip)
+            .limit(limit)
+            .sort('createdAt', 1)
+        )
+        trimmedApplications = []
+
+        for application in applications:
+            trimmedApplication = {
+                "id" : str(application.get("id")),
+                "applicationId": application.get("applicationId"),
+                "routeFrom": application.get("routeFrom"),
+                "routeTo": application.get("routeTo"),
+                "vehicleCount": application.get("vehicleCount"),
+                "submittedDate": application.get("submittedDate"),
+            }
+            trimmedApplications.append(trimmedApplication)
+
+        pagination = {
+            "current_page": page,
+            "total_pages": total_pages,
+            "total_items": total,
+            "has_previous": page > 1,
+            "has_next": page < total_pages,
+            "previous_page": page - 1 if page > 1 else None,
+            "next_page": page + 1 if page < total_pages else None,
+        }
+        
+        return {
+            "success": True,
+            "results": trimmedApplications,
+            "pagination": pagination
+        }, 200
+    
+    except Exception as e:
+        return {'error': str(e)}, 500
 
 @app.route('/api/applications', methods=['POST'])
 @token_required
@@ -263,7 +317,6 @@ def create_application(current_user):
         }
 
         applications_collection.insert_one(application)
-
         return jsonify({
             'success': True,
             'applicationId': application_id,
