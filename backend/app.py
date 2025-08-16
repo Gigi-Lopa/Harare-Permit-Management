@@ -9,6 +9,7 @@ from functools import wraps
 import pytz
 from pprint import pprint
 import os
+import re
 
 app = Flask(__name__)
 CORS(app)
@@ -243,6 +244,7 @@ def get_client_applications(current_user):
         for application in applications:
             trimmedApplication = {
                 "id" : str(application.get("id")),
+                "status" : application.get("status"),
                 "applicationId": application.get("applicationId"),
                 "routeFrom": application.get("routeFrom"),
                 "routeTo": application.get("routeTo"),
@@ -340,6 +342,79 @@ def get_application(application_id):
     
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@app.route("/api/client/search/application", methods = ["GET"])
+@token_required
+def search_application(current_user):
+    query = request.args.get("q", None)
+    mode = request.args.get("mode", "default")
+    id = str(current_user.get("_id"))
+
+    if not query:
+        return {
+            "success" : False,
+            "message" :"Empty query"
+        }
+    try:
+        if mode == "default":
+            applications = list(applications_collection.find({
+                "ownerID": id,
+                "applicationId": {
+                    "$regex": f"{query}",
+                    "$options": "i"
+                }
+            }).limit(5))
+
+            trimmedApplications = []
+            for application in applications:
+                trimmedApplication  = {
+                    "id" : str(application.get("_id")),
+                    "applicationId" : application.get("applicationId"),
+                    "route" : f"{application.get("routeFrom")} - {application.get("routeTo")}",
+                    "status":  application.get("status"),
+                    "submittedDate" :  application.get("submittedDate"),
+                    "vehicleCount" : application.get("vehicleCount"),
+                    "operatorName": application.get("operatorName"),
+                    "contactPerson": application.get("contactPerson"),
+                    "timeline": application.get("timeline") 
+                }
+
+                trimmedApplications.append(trimmedApplication)
+
+            return {
+                "success" : True,
+                "results" :  trimmedApplications
+            }, 200
+        
+        elif mode == "single":
+            application = applications_collection.find_one({
+                "ownerID": id,
+                "applicationId": {
+                    "$regex": f"{query}",
+                    "$options": "i"
+                }
+            })
+
+
+            return {
+                "success" : True,
+                "result" :  {
+                    "id" : str(application.get("_id")),
+                    "applicationId" : application.get("applicationId"),
+                    "route" : f"{application.get("routeFrom")} - {application.get("routeTo")}",
+                    "status":  application.get("status"),
+                    "submittedDate" :  application.get("submittedDate"),
+                    "vehicleCount" : application.get("vehicleCount"),
+                    "operatorName": application.get("operatorName"),
+                    "contactPerson": application.get("contactPerson"),
+                    "timeline": application.get("timeline") 
+                }
+            }, 200
+
+
+    except Exception as e:
+        app.logger.error(f"Search error: {e}")
+        return {"success": False, "message": "An error occurred"}, 500
 
 @app.route('/api/applications/<application_id>/status', methods=['PUT'])
 @token_required
@@ -474,6 +549,7 @@ def get_client_vehicles(current_user):
         for vehicle in vehicles:
             trimmed_vehicle = {
                 "_id": str(vehicle['_id']), 
+                "status" : vehicle.get("status"),
                 "registrationNumber": vehicle["registrationNumber"],
                 "make": vehicle["make"],
                 "model": vehicle["model"],
