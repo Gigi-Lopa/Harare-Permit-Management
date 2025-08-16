@@ -2,16 +2,35 @@ import React, { useEffect, useState } from 'react'
 import { TabsContent } from "@/components/ui/tabs"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from '@/components/ui/button'
-import { Settings, Plus, Bus, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Settings, Plus, Bus, ChevronLeft, ChevronRight, AlertCircle } from 'lucide-react'
 import Link from 'next/link'
 import useVehicles from '@/hooks/useVehicles'
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import EmptyScreen from '@/components/general/EmptyScreen'
+import LoadingIndicator from '@/components/general/LoadingIndicators'
+import {Badge} from "@/components/ui/badge"
 
 function Vehicles() {
-  const { vehicles, getVehicles, pagination } = useVehicles()
+  const { vehicles, getVehicles, pagination, getVehiclesStatus } = useVehicles()
   const [page, setPage] = useState(1)
 
+  const getStatusBadge = (status: string) => {
+        const variants = {
+          pending: "secondary",
+          approved: "default",
+          under_review: "outline",
+          rejected: "destructive",
+          active: "default",
+          maintenance: "secondary",
+        } as const
+
+        return <Badge variant={variants[status as keyof typeof variants] || "outline"}>{status.replace("_", " ")}</Badge>
+  }
+
   useEffect(() => {
-    getVehicles(page)
+    if(!vehicles){
+      getVehicles(page)
+    }
   }, [page])
 
   return (
@@ -27,7 +46,23 @@ function Vehicles() {
           </Button>
         </Link>
       </div>
+      {
+        getVehiclesStatus.loading &&
+        <div className='h-[50vh] flex flex-col items-center justify-center'>
+          <LoadingIndicator/>
+        </div>
+      }
+      {
+        getVehiclesStatus.empty &&
+        <EmptyScreen message='Empty vehicles'/>
+      }
 
+      { getVehiclesStatus.error &&
+        <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>An error occured</AlertDescription>
+          </Alert>
+      }
       <div className="grid gap-6">
         {Array.isArray(vehicles) && vehicles.map((vehicle: any) => (
           <Card key={vehicle._id}>
@@ -43,6 +78,7 @@ function Vehicles() {
                   </div>
                 </div>
                 <div className="flex items-center space-x-3">
+                  {getStatusBadge(vehicle.status)}
                   <Button variant="outline" size="sm">
                     <Settings className="h-4 w-4" />
                   </Button>

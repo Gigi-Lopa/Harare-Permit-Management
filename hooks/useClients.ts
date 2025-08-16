@@ -7,9 +7,14 @@ export default function useClient(){
   const [user, setUser] = useState<LocalUser | null>(null)
   const [applications, setApplications] = useState<Application[]>([])
   const [notifications, setNotifications] = useState([])
-  const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null)
+  const [dashboardStats, setDashboardStats] = useState<DashboardStats>({
+    totalApplications : 0,
+    activePermits : 0,
+    registeredVehicles : 0,
+    pendingReviews : 0
+  })
+
   const [pagination, setPagination] = useState<Pagination | null>(null);
-  
   const [getApplicationsStatus, setGetApplicationStatus] = useState({
     loading : true,
     error : false,

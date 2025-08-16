@@ -1,12 +1,22 @@
+export type TimelineStep = {
+  status: string
+  date: string
+  time: string
+  description: string
+  completed: boolean
+  current?: boolean
+}
+
 export type Application = {
     id : string,
     route : string,
     status:  string,
+    applicationId : string,
     submittedDate :  string,
     vehicleCount : number,
     operatorName?: string,
     contactPerson?: string,
-      
+    timeline?: TimelineStep[]   
 }
 
 export type Vehicle = {
@@ -46,3 +56,4 @@ export type DashboardStats = {
     registeredVehicles : number,
     pendingReviews : number
 }
+

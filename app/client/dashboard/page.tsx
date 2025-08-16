@@ -10,13 +10,23 @@ import Applications from "@/components/tabs/client/Applications"
 import Vehicles from "@/components/tabs/client/Vehicles"
 import Profile from "@/components/tabs/client/Profile"
 import TrackApplication from "@/components/general/ClientTrackApplication"
-import { useEffect, useState } from "react"
+import useTrackApplication from "@/hooks/useTrackApplication"
 
 export default function ClientDashboardPage() {
   const {  
     user,
+    dashboardStats,
     handleLogout
   }  = useClient();
+
+  const {
+  applicationId,
+  applicationData,
+  loading,
+  setApplicationId,
+  handleSearch
+ } = useTrackApplication();
+
   const getStatusIcon = (status: string) => {
         switch (status) {
         case "approved":
@@ -79,19 +89,29 @@ export default function ClientDashboardPage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         
         <ClientCards
-          applications ={55}
-          activePermits = {4}
-          registeredVehicles = {55}
-          pendingReviews = {4}
+          applications ={dashboardStats.totalApplications}
+          activePermits = {dashboardStats.activePermits}
+          registeredVehicles = {dashboardStats.registeredVehicles}
+          pendingReviews = {dashboardStats.pendingReviews}
         />
-        <TrackApplication getStatusBadge = {getStatusBadge} getStatusIcon={getStatusIcon}/>
+        <TrackApplication 
+          getStatusBadge = {getStatusBadge}
+          getStatusIcon={getStatusIcon}
+          applicationId = {applicationId}
+          applicationData={applicationData}
+          loading = {loading}
+          setApplicationId = {setApplicationId}
+          handleSearch = {handleSearch}
+          />
         <Tabs defaultValue="applications" className="space-y-6">
           <TabsList>
             <TabsTrigger value="applications">My Applications</TabsTrigger>
             <TabsTrigger value="vehicles">My Vehicles</TabsTrigger>
             <TabsTrigger value="profile">Profile</TabsTrigger>
           </TabsList>
-          <Applications 
+          <Applications
+            setApplicationId = {setApplicationId}
+            handleSearch = {handleSearch} 
             getStatusBadge={getStatusBadge}
             getStatusIcon={getStatusIcon}
 
