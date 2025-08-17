@@ -5,8 +5,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Search, XCircle, } from "lucide-react"
+import { Search, SearchIcon, XCircle, } from "lucide-react"
 import { Application } from "@/types"
+import App from "next/app"
 
 
 interface props{
@@ -15,33 +16,69 @@ interface props{
     applicationId : string,
     applicationData : Application | null,
     loading : false | true,
+    applications : Application[] | null,
     setApplicationId : (value:string) => void,
+    onClear : ()=> void,
     handleSearch : (value : "default" | "single") => void
 }
 
-export default function TrackApplication({getStatusBadge , applicationData, applicationId, setApplicationId, handleSearch, loading}:props) {
+export default function TrackApplication({getStatusBadge ,onClear, applications,applicationData, applicationId, setApplicationId, handleSearch, loading}:props) {
 
+    const [showSearchResults, setShowSearchResults] =  useState(false)
+   
   return (
     <div className="w-full">
         <Card className="mb-8">
-        <CardHeader>
-            <CardTitle>Enter Application ID</CardTitle>
-            <CardDescription>Enter your application ID to track the status of your permit application</CardDescription>
-        </CardHeader>
-        <CardContent>
-            <div className="flex space-x-4">
-            <div className="flex-1">
-                <Input
-                  placeholder="e.g., PRM-2024-001"
-                  value={applicationId}
-                  onChange={(e) => {
-                    setApplicationId(e.target.value)
-                    handleSearch("default")
-                }}
-            />
-            </div>
-            </div>
-        </CardContent>
+            <CardHeader>
+                <CardTitle>Enter Application ID</CardTitle>
+                <CardDescription>Enter your application ID to track the status of your permit application</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div className="flex space-x-4 relative">
+                    <div className="flex-1 flex flex-row gap-2">
+                        <Input
+                            placeholder="e.g., PRM-2024-001"
+                            value={applicationId}
+                            onBlur={()=> setShowSearchResults(false)}
+                            onChange={(e) => {
+                                setApplicationId(e.target.value)
+                            }}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                    handleSearch("default");
+                                    setShowSearchResults(true)
+                                }
+                            }}
+                        />
+                    <Button onClick={()=>handleSearch("default")}> <SearchIcon className="w-4 h-4 mr-1" /> Search</Button>
+                    <Button onClick={onClear} variant={"destructive"}> <XCircle className="w-4 h-4 mr-1" /> Clear</Button>
+                    {
+                        applications != null && showSearchResults &&
+                   <div className="absolute w-full top-[45px] z-50 bg-white border border-gray-200 rounded shadow-sm">
+                            {
+                                applications.length === 0 ? 
+                                <div className="w-full text-center p-4">No Results</div>
+                                    :
+                                    applications.map((app, index) =>
+                                        <Button
+                                            variant="ghost"
+                                            key={index}
+                                            className="w-full"
+                                            onMouseDown={() => {
+                                                setApplicationId(app.applicationId);
+                                                handleSearch("single");
+                                                setShowSearchResults(false);
+                                            }}
+                                        >
+                                        {app.applicationId}
+                                </Button>
+                            )
+                            }
+                        </div>
+                    }
+                    </div>
+                </div>
+            </CardContent>
         </Card>
 
         {/* Application Details */}

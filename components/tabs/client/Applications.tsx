@@ -3,7 +3,7 @@ import { TabsContent } from "@/components/ui/tabs"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
-import { Clock,AlertCircle, Plus, Download , ChevronLeft, ChevronRight, FolderOpen} from "lucide-react"
+import { Clock,AlertCircle, Plus, Download , ChevronLeft, ChevronRight, FolderOpen, ExternalLink} from "lucide-react"
 import { Application } from '@/types'
 import useClient from '@/hooks/useClients'
 import LoadingIndicator from '@/components/general/LoadingIndicators'
@@ -37,7 +37,7 @@ function Applications({ getStatusIcon, getStatusBadge, setApplicationId, handleS
        <TabsContent value="applications" className="space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-bold text-gray-900">My Applications</h2>
-              <Link href="/client/applications">
+              <Link href="/client/applications/register">
                 <Button>
                   <Plus className="h-4 w-4 mr-2" />
                   New Application
@@ -84,9 +84,11 @@ function Applications({ getStatusIcon, getStatusBadge, setApplicationId, handleS
                           }}>
                             Track
                           </Button>
-                        <Button variant="outline" size="sm">
-                          <Download className="h-4 w-4" />
-                        </Button>
+                          <Link href={"/client/applications/application?id=" + app.applicationId}>
+                            <Button variant="outline" size="sm">
+                              <ExternalLink className="h-4 w-4" />
+                            </Button>
+                          </Link>
                       </div>
                     </div>
                   </CardContent>

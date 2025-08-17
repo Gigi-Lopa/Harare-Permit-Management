@@ -23,8 +23,10 @@ export default function ClientDashboardPage() {
   applicationId,
   applicationData,
   loading,
+  applications,
   setApplicationId,
-  handleSearch
+  handleSearch,
+  onClear
  } = useTrackApplication();
 
   const getStatusIcon = (status: string) => {
@@ -95,6 +97,8 @@ export default function ClientDashboardPage() {
           pendingReviews = {dashboardStats.pendingReviews}
         />
         <TrackApplication 
+          onClear = {onClear}
+          applications={applications}
           getStatusBadge = {getStatusBadge}
           getStatusIcon={getStatusIcon}
           applicationId = {applicationId}
@@ -117,7 +121,7 @@ export default function ClientDashboardPage() {
 
           />
           <Vehicles/>
-          <Profile user = {{email : "client@client.com", role :"Admin"}}/>
+          <Profile />
         </Tabs>
       </main>
     </div>

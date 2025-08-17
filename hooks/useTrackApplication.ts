@@ -1,6 +1,7 @@
 import { Application, LocalUser } from "@/types"
 import { useState } from "react"
 import useGetUserInfor from "./useGetUserInfor"
+import { count } from "console"
 
 
 export default function useTrackApplication(){
@@ -56,36 +57,43 @@ export default function useTrackApplication(){
     if (!applicationId.trim()) return
     setLoading(true)
     
-    setTimeout(() => {
       const QUERY = mode === "default" ? `${process.env.NEXT_PUBLIC_API_URL}/api/client/search/application?q=${applicationId}` :
       `${process.env.NEXT_PUBLIC_API_URL}/api/client/search/application?q=${applicationId}&&mode=single`
       fetch(QUERY,
-    {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${user?.token_payload}`,
-        }
-    })
-    .then(response => response.json())
-    .then(response =>{
-      if(response.success){
-        if(mode === "single"){
-          setApplicationData(response.result)
-          return;
-        }
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${user?.token_payload}`,
+          }
+      })
+      .then(response => response.json())
+      .then(response =>{
+        if(response.success){
+          if(mode === "single"){
+            setApplicationData(response.result)
+            return;
+          }
 
-        setApplications(response.results)
-      }
-    })
-    .catch(error=> console.log(error))
-    .finally(()=>setLoading(false))
-    }, 1500)
+          setApplications(response.results)
+        }
+      })
+      .catch(error=> console.log(error))
+      .finally(()=>setLoading(false))
+
+  }
+
+  const onClear = () =>{
+    setApplicationId("")
+    setApplicationData(null)
+    setApplications(null)
   }
 
   return {
     applicationId,
     applicationData,
     loading,
+    applications,
+    onClear,
     setApplicationData,
     setApplicationId,
     handleSearch

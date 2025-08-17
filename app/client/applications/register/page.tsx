@@ -2,7 +2,6 @@
 "use client"
 
 import type React from "react"
-import { useEffect, useRef, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -13,8 +12,6 @@ import { ArrowLeft, Upload, FileText, CheckCircle, AlertCircle } from "lucide-re
 import Link from "next/link"
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert"
 import useApplication from "@/hooks/useApplications"
-import useGetUserInfor from "@/hooks/useGetUserInfor"
-import { useRouter } from "next/navigation"
 export default function NewApplicationPage() {
   const {    
     formData,

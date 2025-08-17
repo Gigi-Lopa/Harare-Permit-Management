@@ -79,9 +79,6 @@ function Vehicles() {
                 </div>
                 <div className="flex items-center space-x-3">
                   {getStatusBadge(vehicle.status)}
-                  <Button variant="outline" size="sm">
-                    <Settings className="h-4 w-4" />
-                  </Button>
                 </div>
               </div>
             </CardContent>

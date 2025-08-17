@@ -57,3 +57,32 @@ export type DashboardStats = {
     pendingReviews : number
 }
 
+export interface UploadedFiles {
+  businessRegistrationCertificate?: string
+  vehicleDocuments?: string
+  insuranceCertificates?: string
+  driversLicenses?: string
+}
+export interface ApplicationFull {
+  id: string
+  applicationId: string
+  ownerID: string
+  operatorName: string
+  contactPerson: string
+  email: string
+  phone: string
+  address: string
+  businessRegistration: string
+  routeFrom: string
+  routeTo: string
+  vehicleCount: string
+  operatingHours: string
+  description: string
+  agreedToTerms: string
+  status: string
+  submittedDate: string
+  createdAt: string
+  updatedAt: string
+  uploadedFiles: UploadedFiles
+  timeline: TimelineStep[]
+}

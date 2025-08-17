@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 from pymongo import MongoClient
 from bson import ObjectId
@@ -10,14 +10,17 @@ import pytz
 from pprint import pprint
 import os
 import re
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 CORS(app)
 cat_tz = pytz.timezone('Africa/Harare')
 
 # Configuration
+UPLOAD_FOLDER = "uploads"
 app.config['SECRET_KEY'] = "eibgrlgnrwljfweufhewoufnbewjfwefjkebo"
-upload_dir = "uploads"
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024 
 
 # MongoDB connection
 client = MongoClient("mongodb://localhost:27017/")
@@ -29,6 +32,37 @@ applications_collection = db.applications
 vehicles_collection = db.vehicles
 operators_collection = db.operators
 officers_collection  = db.operators
+
+ALLOWED_EXTENSIONS = {'pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png', 'gif'}
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def save_file(file):
+    if file and allowed_file(file.filename):
+        filename = secure_filename(file.filename)
+        timestamp = datetime.now(cat_tz).strftime('%Y%m%d_%H%M%S_')
+        filename = timestamp + filename
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(file_path)
+        return f'uploads/{filename}'
+    else:
+        return False
+    
+def serialize_application(application):
+    if application:
+        application['_id'] = str(application['_id'])
+
+        if 'createdAt' in application and isinstance(application['createdAt'], datetime):
+            application['createdAt'] = application['createdAt'].isoformat()
+
+        if 'updatedAt' in application and isinstance(application['updatedAt'], datetime):
+            application['updatedAt'] = application['updatedAt'].isoformat()
+            
+        if 'timeline' in application and application['timeline']:
+            for event in application['timeline']:
+                if 'date' in event and isinstance(event['date'], datetime):
+                    event['date'] = event['date'].strftime('%Y-%m-%d')    
+    return application
 
 def token_required(f):
     @wraps(f)
@@ -284,15 +318,14 @@ def create_application(current_user):
             if not form.get(field):
                 return jsonify({'error': f'Missing required field: {field}'}), 400
 
-        os.makedirs(upload_dir, exist_ok=True)
+        os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
         saved_files = {}
         for key in ['businessRegistrationCertificate', 'vehicleDocuments', 'insuranceCertificates', 'driversLicenses']:
             file = files.get(key)
             if file:
-                file_path = os.path.join(upload_dir, file.filename)
-                file.save(file_path)
-                saved_files[key] = file_path
+                file_path  = save_file(file)
+                saved_files[key] = "NULL" if not file_path else file_path
 
         year = datetime.now().year
         count = applications_collection.count_documents({'submittedDate': {'$regex': f'^{year}'}})
@@ -332,17 +365,18 @@ def create_application(current_user):
 @app.route('/api/applications/<application_id>', methods=['GET'])
 def get_application(application_id):
     try:
-        application = applications_collection.find_one({'applicationId': application_id})
-        
+        application = applications_collection.find_one({'applicationId': application_id})   
         if not application:
             return jsonify({'error': 'Application not found'}), 404
+        serialized_app = serialize_application(application)
         
-        application['_id'] = str(application['_id'])
-        return jsonify(application)
+        app.logger.info(f"Application fetched successfully: {application_id}")
+        return jsonify(serialized_app), 200
     
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
+        app.logger.error(f"Error fetching application {application_id}: {str(e)}")
+        return jsonify({'error': 'Internal server error'}), 500
+    
 @app.route("/api/client/search/application", methods = ["GET"])
 @token_required
 def search_application(current_user):
@@ -390,11 +424,10 @@ def search_application(current_user):
             application = applications_collection.find_one({
                 "ownerID": id,
                 "applicationId": {
-                    "$regex": f"{query}",
+                    "$regex": f"^{query}$",
                     "$options": "i"
                 }
             })
-
 
             return {
                 "success" : True,
@@ -476,9 +509,8 @@ def register_vehicle(current_user):
         for key in ['vehicleDocuments', 'insuranceCertificates', 'driversLicenses']:
             file = files.get(key)
             if file:
-                file_path = os.path.join(upload_dir, file.filename)
-                file.save(file_path)
-                saved_files[key] = file_path
+                file_path = save_file(file)
+                saved_files[key] = "NULL" if not file_path else file_path
 
         vehicle_doc = {
             "ownerID" :  str(current_user.get('_id')),
@@ -691,5 +723,27 @@ def delete_vehicle(vehicle_id):
         print(f"Delete vehicle error: {str(e)}")
         return jsonify({'error': 'Internal server error'}), 500
 
+@app.route('/api/files/download', methods=['GET'])
+def download_file():
+    try:
+        file_path = request.args.get('path')
+        
+        if not file_path:
+            return jsonify({'error': 'File path is required'}), 400
+        
+        if not file_path.startswith('uploads/'):
+            return jsonify({'error': 'Invalid file path'}), 400
+        
+        full_path = os.path.join(app.config['UPLOAD_FOLDER'], file_path.replace('uploads/', ''))
+        
+        if not os.path.exists(full_path):
+            return jsonify({'error': 'File not found'}), 404
+        
+        return send_file(full_path, as_attachment=True)
+    
+    except Exception as e:
+        app.logger.error(f"Error downloading file: {str(e)}")
+        return jsonify({'error': 'Internal server error'}), 500
+  
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
