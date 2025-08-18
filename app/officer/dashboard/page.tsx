@@ -1,6 +1,4 @@
 "use client"
-
-import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -16,189 +14,24 @@ import {
   XCircle,
   AlertTriangle,
   LogOut,
-  FileText,
-  Calendar,
   User,
   Phone,
-  MapPin,
   Clock,
 } from "lucide-react"
-import { useRouter } from "next/navigation"
+import { AddViolationDialog } from "@/components/general/AddViolation"
+import useOfficer from "@/hooks/useOfficer"
 
 export default function OfficerDashboardPage() {
-  const [user, setUser] = useState<any>(null)
-  const [searchPlate, setSearchPlate] = useState("")
-  const [vehicleInfo, setVehicleInfo] = useState<any>(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState("")
-  const [searchHistory, setSearchHistory] = useState([])
-  const router = useRouter()
-
-  useEffect(() => {
-  /*   // Check if user is logged in and is officer
-    const token = localStorage.getItem("token")
-    const userData = localStorage.getItem("user")
-
-    if (!token || !userData) {
-      router.push("/auth/officer-login")
-      return
-    }
-
-    const parsedUser = JSON.parse(userData)
-    if (parsedUser.role !== "officer") {
-      router.push("/auth/officer")
-      return
-    } */
-
-    setUser({
-      badgeNumber : "5555",
-      firstName : "Gilbert",
-      lastName : "Lopah"
-    })
-    loadSearchHistory()
-  }, [])
-
-  const loadSearchHistory = () => {
-    // Mock search history
-    setSearchHistory([
-      {
-        id: 1,
-        licensePlate: "AEZ 1234",
-        searchTime: "2024-01-20 14:30",
-        status: "valid",
-        operatorName: "City Express Transport",
-      },
-      {
-        id: 2,
-        licensePlate: "AEZ 5678",
-        searchTime: "2024-01-20 13:15",
-        status: "expired",
-        operatorName: "Harare Commuter Services",
-      },
-      {
-        id: 3,
-        licensePlate: "AEZ 9999",
-        searchTime: "2024-01-20 12:45",
-        status: "invalid",
-        operatorName: "Unknown",
-      },
-    ])
-  }
-
-  const handleSearch = async () => {
-    if (!searchPlate.trim()) {
-      setError("Please enter a license plate number")
-      return
-    }
-
-    setLoading(true)
-    setError("")
-    setVehicleInfo(null)
-
-    try {
-      // Mock API call - in real app, this would call Flask backend
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-
-      // Mock vehicle data based on license plate
-      const mockVehicleData = {
-        "AEZ 1234": {
-          licensePlate: "AEZ 1234",
-          status: "valid",
-          operatorName: "City Express Transport",
-          contactPerson: "John Mukamuri",
-          phone: "+263 77 123 4567",
-          vehicleModel: "Toyota Hiace",
-          capacity: 14,
-          route: "CBD - Chitungwiza",
-          permitNumber: "PRM-2024-001",
-          permitExpiry: "2024-12-31",
-          lastInspection: "2024-01-01",
-          insuranceExpiry: "2024-06-30",
-          roadworthyExpiry: "2024-08-15",
-          violations: [
-            {
-              id: 1,
-              date: "2024-01-15",
-              violation: "Overloading",
-              fine: "$50",
-              status: "paid",
-            },
-          ],
-        },
-        "AEZ 5678": {
-          licensePlate: "AEZ 5678",
-          status: "expired",
-          operatorName: "Harare Commuter Services",
-          contactPerson: "Mary Chikwanha",
-          phone: "+263 77 234 5678",
-          vehicleModel: "Nissan Caravan",
-          capacity: 16,
-          route: "CBD - Mbare",
-          permitNumber: "PRM-2024-002",
-          permitExpiry: "2024-01-15",
-          lastInspection: "2023-12-15",
-          insuranceExpiry: "2024-03-30",
-          roadworthyExpiry: "2024-02-15",
-          violations: [],
-        },
-        "AEZ 9999": {
-          licensePlate: "AEZ 9999",
-          status: "invalid",
-          operatorName: "Unknown",
-          contactPerson: "N/A",
-          phone: "N/A",
-          vehicleModel: "Unknown",
-          capacity: 0,
-          route: "N/A",
-          permitNumber: "N/A",
-          permitExpiry: "N/A",
-          lastInspection: "N/A",
-          insuranceExpiry: "N/A",
-          roadworthyExpiry: "N/A",
-          violations: [],
-        },
-      }
-
-      const vehicleData = mockVehicleData[searchPlate.toUpperCase()] || {
-        licensePlate: searchPlate.toUpperCase(),
-        status: "not_found",
-        operatorName: "Not Found",
-        contactPerson: "N/A",
-        phone: "N/A",
-        vehicleModel: "N/A",
-        capacity: 0,
-        route: "N/A",
-        permitNumber: "N/A",
-        permitExpiry: "N/A",
-        lastInspection: "N/A",
-        insuranceExpiry: "N/A",
-        roadworthyExpiry: "N/A",
-        violations: [],
-      }
-
-      setVehicleInfo(vehicleData)
-
-      // Add to search history
-      const newSearch = {
-        id: Date.now(),
-        licensePlate: searchPlate.toUpperCase(),
-        searchTime: new Date().toLocaleString(),
-        status: vehicleData.status,
-        operatorName: vehicleData.operatorName,
-      }
-      setSearchHistory((prev) => [newSearch, ...prev.slice(0, 9)])
-    } catch (err) {
-      setError("Failed to search vehicle information")
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleLogout = () => {
-    localStorage.removeItem("token")
-    localStorage.removeItem("user")
-    router.push("/auth/officer-login")
-  }
+  const { user,
+        searchPlate,
+        vehicleInfo,
+        loading,
+        error,
+        searchHistory,
+        handleSearch,
+        AddViolation,
+        handleLogout,
+        setSearchPlate} = useOfficer();
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
@@ -240,13 +73,13 @@ export default function OfficerDashboardPage() {
             <div className="flex items-center space-x-4">
               <div className="text-right">
                 <p className="text-sm font-medium text-gray-900">
-                  Officer {user.firstName} {user.lastName}
+                  Officer {user.user.firstName} {user.user.lastName}
                 </p>
-                <p className="text-xs text-gray-600">Badge: {user.badgeNumber}</p>
+                <p className="text-xs text-gray-600">Badge: {user.user.badgeNumber}</p>
               </div>
               <Avatar>
                 <AvatarFallback className="bg-green-100 text-green-700">
-                  {user.firstName ? `${user.firstName[0]}${user.lastName?.[0] || ""}` : "O"}
+                  {user.user.firstName ? `${user.user.firstName[0]}${user.user.lastName?.[0] || ""}` : "O"}
                 </AvatarFallback>
               </Avatar>
               <Button variant="ghost" size="sm" onClick={handleLogout}>
@@ -297,7 +130,6 @@ export default function OfficerDashboardPage() {
               </CardContent>
             </Card>
 
-            {/* Vehicle Information */}
             {vehicleInfo && (
               <Card>
                 <CardHeader>
@@ -319,7 +151,6 @@ export default function OfficerDashboardPage() {
                     </div>
                   ) : (
                     <div className="space-y-6">
-                      {/* Basic Information */}
                       <div>
                         <h4 className="text-sm font-medium text-gray-900 mb-3">Basic Information</h4>
                         <div className="grid grid-cols-2 gap-4">
@@ -342,7 +173,6 @@ export default function OfficerDashboardPage() {
                         </div>
                       </div>
 
-                      {/* Operator Information */}
                       <div>
                         <h4 className="text-sm font-medium text-gray-900 mb-3">Operator Information</h4>
                         <div className="grid grid-cols-1 gap-4">
@@ -360,7 +190,6 @@ export default function OfficerDashboardPage() {
                         </div>
                       </div>
 
-                      {/* Permit & Compliance Status */}
                       <div>
                         <h4 className="text-sm font-medium text-gray-900 mb-3">Permit & Compliance Status</h4>
                         <div className="grid grid-cols-2 gap-4">
@@ -401,7 +230,6 @@ export default function OfficerDashboardPage() {
                         </div>
                       </div>
 
-                      {/* Violations History */}
                       {vehicleInfo.violations && vehicleInfo.violations.length > 0 && (
                         <div>
                           <h4 className="text-sm font-medium text-gray-900 mb-3">Recent Violations</h4>
@@ -429,6 +257,13 @@ export default function OfficerDashboardPage() {
                           </div>
                         </div>
                       )}
+                       <AddViolationDialog
+                          user = {user}
+                          vehicleId={vehicleInfo.vehicleID}
+                          onViolationAdded={(v) => {
+                            AddViolation(v)
+                          }}
+                        />
                     </div>
                   )}
                 </CardContent>
@@ -436,7 +271,6 @@ export default function OfficerDashboardPage() {
             )}
           </div>
 
-          {/* Search History */}
           <div className="space-y-6">
             <Card>
               <CardHeader>

@@ -32,6 +32,7 @@ export type User = {
     email : string,
     firstName : string,
     lastName : string,
+    badgeNumber?: string,
     role : string
 }
 
@@ -85,4 +86,11 @@ export interface ApplicationFull {
   updatedAt: string
   uploadedFiles: UploadedFiles
   timeline: TimelineStep[]
+}
+export type SearchEntry = {
+  id: number
+  licensePlate: string
+  searchTime: string
+  status: string
+  operatorName: string
 }

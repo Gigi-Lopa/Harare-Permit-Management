@@ -11,6 +11,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Eye, EyeOff, Shield, AlertCircle } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import type { LocalUser } from "@/types"
 
 export default function OfficerLoginPage() {
   const [formData, setFormData] = useState({
@@ -28,7 +29,7 @@ export default function OfficerLoginPage() {
     setError("")
 
     try {
-      const response = await fetch("/api/auth/officer-login", {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/officer/auth`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -42,8 +43,12 @@ export default function OfficerLoginPage() {
       const data = await response.json()
 
       if (response.ok) {
-        localStorage.setItem("token", data.token)
-        localStorage.setItem("user", JSON.stringify(data.user))
+          const cachedUser = {
+            user: data?.officer,
+            token_payload: data?.token
+        } as LocalUser;
+              
+        localStorage.setItem("token", JSON.stringify(cachedUser));
         router.push("/officer/dashboard")
       } else {
         setError(data.message || "Login failed")

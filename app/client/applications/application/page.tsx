@@ -15,7 +15,7 @@ export default function ApplicationDetailsPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (!id) return
+    if (!id) return;
     const fetchApplication = async () => {
       try {
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/applications/${id}`)

@@ -14,6 +14,7 @@ export default function useGetUserInfor() {
                     email: user?.email,
                     firstName: user?.firstName,
                     lastName: user?.lastName,
+                    badgeNumber : user?.badgeNumber || "N/A",
                     role: user?.role,
                 },
                 token_payload: parsedToken?.token_payload

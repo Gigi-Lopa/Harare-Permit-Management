@@ -31,6 +31,7 @@ users_collection = db.users
 applications_collection = db.applications
 vehicles_collection = db.vehicles
 officers_collection  = db.officers
+violations_collection = db.violations
 
 ALLOWED_EXTENSIONS = {'pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png', 'gif'}
 def allowed_file(filename):
@@ -116,6 +117,37 @@ def generate_token(user):
 
     token = jwt.encode(token_payload, app.config["SECRET_KEY"], algorithm="HS256")
     return token
+
+def officer_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = request.headers.get("Authorization", "").strip()
+        if not token:
+            return {'message': 'Token is missing'}, 401
+
+        if token.startswith('Bearer '):
+            token = token[len('Bearer '):]
+
+        try:
+            data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
+            user_id = data.get('user_id') or data.get('id')
+
+            if not user_id:
+                return {'message': 'Invalid token payload'}, 401
+
+            current_user = officers_collection.find_one({'_id': ObjectId(user_id)})
+            if not current_user:
+                return {'message': 'User not found'}, 401
+
+        except jwt.ExpiredSignatureError:
+            return {'message': 'Token has expired'}, 401
+        except jwt.InvalidTokenError:
+            return {'message': 'Token is invalid'}, 401
+        except Exception:
+            return {'message': 'Token validation failed'}, 401
+
+        return f(current_user, *args, **kwargs)
+    return decorated
 
 def hash_password(password):
     return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
@@ -899,11 +931,149 @@ def create_officer(admin):
 @admin_required
 def get_officers(admin):
     pass
+
 """
 #### OFFICER ROUTES
 """
 
+@app.route("/api/officer/auth", methods = ["POST"])
+def officer_login():
+    data = request.get_json()
+    badgeNumber = data.get("badgeNumber", None)
+    password = data.get("password", None)
 
+    if not badgeNumber and not password:
+        return {
+            "message" : "Officer badge and password needed"
+        }
+    try: 
+        officer = officers_collection.find_one({"badgeNumber" : badgeNumber})
+        if not officer:
+            return {
+                "message" : "Badge Number not found",
+                "isAuth" : False,
+            }, 401
+
+        if not bcrypt.checkpw(password.encode('utf-8'), officer['password']):
+            return jsonify({'message': 'Invalid credentials'}), 401
+            
+        token = generate_token(officer)
+        officers_collection.update_one(
+            {'_id': officer['_id']},
+            {'$set': {'lastLogin': datetime.now(cat_tz)}}
+        )
+        
+        officer_data = {
+            '_id': str(officer['_id']),
+            'badgeNumber' : officer["badgeNumber"],
+            'email': officer['email'],
+            'firstName': officer.get('firstName'),
+            'lastName': officer.get('lastName'),
+            'role': "officer"
+        }
+        
+        return jsonify({
+            'success': True,
+            'token': token,
+            'officer': officer_data,
+            'message': 'Login successful'
+        })
+
+
+    except Exception as e:
+        return {
+            "success" : False,
+            "message" : "An error occured"
+        }, 500
+
+@app.route("/api/officer/search", methods=["GET"])
+@officer_required
+def search_license(current_user):
+    reg_number = request.args.get("plate")
+    if not reg_number:
+        return jsonify({"error": "License plate number is required"}), 400
+
+    vehicle = vehicles_collection.find_one({"registrationNumber": reg_number.upper()})
+    if not vehicle:
+        return jsonify({
+            "licensePlate": reg_number.upper(),
+            "status": "not_found",
+            "operatorName": "Not Found",
+            "contactPerson": "N/A",
+            "vehicleModel": "N/A",
+            "capacity": 0,
+            "route": "N/A",
+            "permitNumber": "N/A",
+            "phone": "N/A",
+            "permitExpiry": "N/A",
+            "lastInspection": "N/A",
+            "insuranceExpiry": "N/A",
+            "roadworthyExpiry": "N/A",
+            "violations": []
+        }), 404
+
+    operator = users_collection.find_one({"_id": ObjectId(vehicle.get("ownerID"))})
+
+    violations_cursor = violations_collection.find({"vehicle_id": vehicle["_id"]})
+    violations = []
+    for v in violations_cursor:
+        violations.append({
+            "id": str(v["_id"]),
+            "officer_id": str(v["officer_id"]),
+            "violation": v["violation"],
+            "fine": v["fine"],
+            "date": v["date"],
+            "status": v.get("status", "unpaid")
+        })
+
+    response = {
+        "vehicleID": str(vehicle["_id"]),
+        "licensePlate": vehicle["registrationNumber"],
+        "status": vehicle.get("status", "unknown"),
+        "operatorName": f"{operator.get('firstName')} {operator.get('lastName')}",
+        "contactPerson": vehicle.get("driverName", "N/A"),
+        "vehicleModel": f"{vehicle.get('make', '')} {vehicle.get('model', '')}".strip(),
+        "capacity": vehicle.get("capacity", 0),
+        "phone": operator["businessInformation"].get("contactPerson", "N/A"),
+        "route": vehicle.get("operatingRoute", "N/A"),
+        "permitNumber": vehicle.get("vehicleId", "N/A"),
+        "permitExpiry": vehicle.get("driverLicenseExpiry", "N/A"),
+        "lastInspection": vehicle.get("registrationDate", "N/A"),
+        "insuranceExpiry": vehicle.get("insuranceExpiryDate", "N/A"),
+        "roadworthyExpiry": vehicle.get("roadworthyExpiryDate", "N/A"),
+        "violations": violations
+    }
+    return jsonify(response), 200
+
+
+@app.route("/api/officer/violations/<vehicle_id>", methods=["POST"])
+@officer_required
+def add_violation(officer, vehicle_id):
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "Missing violation data"}), 400
+
+    violation = {
+        "_id": ObjectId(),
+        "vehicle_id": ObjectId(vehicle_id),
+        "officer_id": ObjectId(officer.get("_id")),
+        "violation": data.get("violation"),
+        "fine": data.get("fine"),
+        "date": datetime.now(cat_tz).strftime("%Y-%m-%d"),
+        "status": "unpaid",
+    }
+
+    result = violations_collection.insert_one(violation)
+
+    if not result.inserted_id:
+        return jsonify({"error": "Failed to save violation"}), 500
+
+    violation["id"] = str(violation["_id"])
+    violation["vehicle_id"] = str(violation["vehicle_id"])
+    violation["officer_id"] = str(violation["officer_id"])
+    del violation["_id"]
+
+    return jsonify({"message": "Violation added", "violation": violation}), 201
 
 """
 #### UNIVERSAL ROUTES
