@@ -52,13 +52,12 @@ export default function useTrackApplication(){
       },
     ],
   }
-
-  const handleSearch = async (mode: "default" | "single") => {
+const handleSearch = async ( mode: "default" | "single", quickTrack?: string | null ) => {
     if (!applicationId.trim()) return
     setLoading(true)
     
       const QUERY = mode === "default" ? `${process.env.NEXT_PUBLIC_API_URL}/api/client/search/application?q=${applicationId}` :
-      `${process.env.NEXT_PUBLIC_API_URL}/api/client/search/application?q=${applicationId}&&mode=single`
+      `${process.env.NEXT_PUBLIC_API_URL}/api/client/search/application?q=${quickTrack ? quickTrack : applicationId}&&mode=single`
       fetch(QUERY,
       {
         method: "GET",

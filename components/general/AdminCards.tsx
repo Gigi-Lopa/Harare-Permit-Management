@@ -5,11 +5,12 @@ interface props{
     totalApplications : number,
     totalPendingReviews : number,
     totalActiveVehicles : number,
-    totalRegisteredOperators : number
+    totalRegisteredOperators : number,
+    totalOfficers : number 
 }
-function AdminCards({totalActiveVehicles, totalApplications, totalRegisteredOperators, totalPendingReviews}: props) {
+function AdminCards({totalActiveVehicles, totalOfficers, totalApplications, totalRegisteredOperators, totalPendingReviews}: props) {
   return (
-     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -26,7 +27,7 @@ function AdminCards({totalActiveVehicles, totalApplications, totalRegisteredOper
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Pending Reviews</p>
+                  <p className="text-sm font-medium text-gray-600">Pending Application</p>
                   <p className="text-2xl font-bold text-gray-900">{totalPendingReviews}</p>
                 </div>
                 <Clock className="h-8 w-8 text-orange-600" />
@@ -50,10 +51,21 @@ function AdminCards({totalActiveVehicles, totalApplications, totalRegisteredOper
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Registered Operators</p>
+                  <p className="text-sm font-medium text-gray-600">Operators</p>
                   <p className="text-2xl font-bold text-gray-900">{totalRegisteredOperators}</p>
                 </div>
                 <Users className="h-8 w-8 text-purple-600" />
+              </div>
+            </CardContent>
+          </Card>
+           <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Officers</p>
+                  <p className="text-2xl font-bold text-gray-900">{totalOfficers}</p>
+                </div>
+                <Users className="h-8 w-8 text-rose-600" />
               </div>
             </CardContent>
           </Card>

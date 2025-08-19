@@ -24,6 +24,7 @@ export default function ClientDashboardPage() {
   applicationData,
   loading,
   applications,
+  setApplicationData,
   setApplicationId,
   handleSearch,
   onClear
@@ -97,6 +98,7 @@ export default function ClientDashboardPage() {
           pendingReviews = {dashboardStats.pendingReviews}
         />
         <TrackApplication 
+          setApplicationData = {setApplicationData}
           onClear = {onClear}
           applications={applications}
           getStatusBadge = {getStatusBadge}

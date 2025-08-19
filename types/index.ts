@@ -9,7 +9,9 @@ export type TimelineStep = {
 
 export type Application = {
     id : string,
-    route : string,
+    route? : string,
+    routeFrom? : string,
+    routeTo? : string,
     status:  string,
     applicationId : string,
     submittedDate :  string,
@@ -52,10 +54,12 @@ export type Pagination ={
 }
 
 export type DashboardStats = {
-    totalApplications : number,
-    activePermits : number,
-    registeredVehicles : number,
-    pendingReviews : number
+    totalApplications? : number,
+    totalOperators? : number,
+    totalOfficers? : number,
+    activePermits? : number,
+    registeredVehicles? : number,
+    pendingReviews? : number
 }
 
 export interface UploadedFiles {
@@ -94,3 +98,9 @@ export type SearchEntry = {
   status: string
   operatorName: string
 }
+
+export type DeleteDialogState = {
+  open: boolean;
+  applicationId: string | null;
+  operatorName: string | null;
+};

@@ -18,14 +18,14 @@ interface props{
     loading : false | true,
     applications : Application[] | null,
     setApplicationId : (value:string) => void,
+    setApplicationData : (value: any) => void,
     onClear : ()=> void,
-    handleSearch : (value : "default" | "single") => void
+    handleSearch : (value : "default" | "single", quickTrack?: string | null ) => void
 }
 
-export default function TrackApplication({getStatusBadge ,onClear, applications,applicationData, applicationId, setApplicationId, handleSearch, loading}:props) {
+export default function TrackApplication({getStatusBadge ,onClear, setApplicationData, applications,applicationData, applicationId, setApplicationId, handleSearch, loading}:props) {
 
-    const [showSearchResults, setShowSearchResults] =  useState(false)
-   
+  const [showSearchResults, setShowSearchResults] =  useState(false) 
   return (
     <div className="w-full">
         <Card className="mb-8">
@@ -43,36 +43,36 @@ export default function TrackApplication({getStatusBadge ,onClear, applications,
                             onChange={(e) => {
                                 setApplicationId(e.target.value)
                             }}
-                            onKeyDown={(e) => {
+                            onKeyDown={async(e) => {
                                 if (e.key === "Enter") {
-                                    handleSearch("default");
+                                    await handleSearch("default");
                                     setShowSearchResults(true)
                                 }
                             }}
                         />
-                    <Button onClick={()=>handleSearch("default")}> <SearchIcon className="w-4 h-4 mr-1" /> Search</Button>
                     <Button onClick={onClear} variant={"destructive"}> <XCircle className="w-4 h-4 mr-1" /> Clear</Button>
                     {
                         applications != null && showSearchResults &&
-                   <div className="absolute w-full top-[45px] z-50 bg-white border border-gray-200 rounded shadow-sm">
+                        <div className="absolute w-full top-[45px] z-50 bg-white border border-gray-200 rounded shadow-sm">
                             {
                                 applications.length === 0 ? 
                                 <div className="w-full text-center p-4">No Results</div>
                                     :
-                                    applications.map((app, index) =>
-                                        <Button
-                                            variant="ghost"
-                                            key={index}
-                                            className="w-full"
-                                            onMouseDown={() => {
-                                                setApplicationId(app.applicationId);
-                                                handleSearch("single");
-                                                setShowSearchResults(false);
-                                            }}
-                                        >
+                                   applications.map((app, index) => (
+                                    <Button
+                                        variant="ghost"
+                                        key={index}
+                                        className="w-full"
+                                        onMouseDown={async () => {
+                                            setApplicationId(app.applicationId)
+                                            await handleSearch("single", app.applicationId)
+                                           
+                                            setShowSearchResults(false)
+                                        }}
+                                    >
                                         {app.applicationId}
-                                </Button>
-                            )
+                                    </Button>
+                                    ))
                             }
                         </div>
                     }

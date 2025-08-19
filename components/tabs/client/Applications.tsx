@@ -3,23 +3,21 @@ import { TabsContent } from "@/components/ui/tabs"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
-import { Clock,AlertCircle, Plus, Download , ChevronLeft, ChevronRight, FolderOpen, ExternalLink} from "lucide-react"
+import { AlertCircle, Plus , ChevronLeft, ChevronRight, ExternalLink} from "lucide-react"
 import { Application } from '@/types'
 import useClient from '@/hooks/useClients'
 import LoadingIndicator from '@/components/general/LoadingIndicators'
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import EmptyScreen from '@/components/general/EmptyScreen'
-import useTrackApplication from '@/hooks/useTrackApplication'
 
 interface props{
-  
     getStatusIcon : (value:string) => React.ReactNode,
     getStatusBadge  : (value: string) => React.ReactNode,
     setApplicationId : (value:string) => void,
     handleSearch : (value: "default" | "single") => void
 }
 
-function Applications({ getStatusIcon, getStatusBadge, setApplicationId, handleSearch}: props) {
+function Applications({ getStatusIcon ,getStatusBadge, setApplicationId, handleSearch}: props) {
   const {    
   applications,
   pagination,
@@ -84,7 +82,7 @@ function Applications({ getStatusIcon, getStatusBadge, setApplicationId, handleS
                           }}>
                             Track
                           </Button>
-                          <Link href={"/client/applications/application?id=" + app.applicationId}>
+                          <Link href={"/uni/application?id=" + app.applicationId}>
                             <Button variant="outline" size="sm">
                               <ExternalLink className="h-4 w-4" />
                             </Button>

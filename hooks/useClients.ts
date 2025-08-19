@@ -29,6 +29,7 @@ export default function useClient(){
           setUser(user);
         } else {
           router.replace("/")
+        return;
         }
     getDashbaord(user?.token_payload || "")
   }, [])

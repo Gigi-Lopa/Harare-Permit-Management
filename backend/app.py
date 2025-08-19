@@ -312,7 +312,7 @@ def get_client_applications(current_user):
 
         for application in applications:
             trimmedApplication = {
-                "id" : str(application.get("id")),
+                "id" : str(application.get("_id")),
                 "status" : application.get("status"),
                 "applicationId": application.get("applicationId"),
                 "routeFrom": application.get("routeFrom"),
@@ -654,7 +654,33 @@ def update_vehicle(vehicle_id):
 """ 
 #### ADMIN ROUTES 
 """
+@app.route('/api/admin/dashboard', methods=['GET'])
+@token_required
+@admin_required
+def get_admin_dashboard(admin):
+    try:
+        # Get total counts
+        total_users = users_collection.count_documents({'role': {'$ne': 'admin'}})
+        total_applications = applications_collection.count_documents({})
+        total_pending_applications = applications_collection.count_documents({"status": {"$ne": "approved"}})
+        total_vehicles = vehicles_collection.count_documents({"status": "approved"})
+        total_officers = officers_collection.count_documents({})
 
+        return jsonify({
+            'success': True,
+            'stats': {
+                'totalOperators': total_users,
+                'totalApplications': total_applications,
+                'registeredVehicles': total_vehicles,
+                'totalOfficers': total_officers,
+                'pendingReviews': total_pending_applications
+            }
+        }), 200
+    
+    except Exception as e:
+        print(f"Get admin dashboard error: {str(e)}")
+        return jsonify({'error': 'Internal server error'}), 500
+    
 @app.route('/api/admin/operators', methods=['GET'])
 @token_required
 @admin_required
@@ -803,7 +829,6 @@ def get_vehicles(admin):
 @admin_required
 def delete_vehicle(admin,vehicle_id):
     try:
-        # Check if vehicle is active
         vehicle = vehicles_collection.find_one({'vehicleId': vehicle_id})
         if not vehicle:
             return jsonify({'error': 'Vehicle not found'}), 404
@@ -813,7 +838,6 @@ def delete_vehicle(admin,vehicle_id):
                 'error': 'Cannot delete active vehicle. Please change status first.'
             }), 400
         
-        # Delete vehicle
         result = vehicles_collection.delete_one({'vehicleId': vehicle_id})
         
         return jsonify({
@@ -825,6 +849,59 @@ def delete_vehicle(admin,vehicle_id):
         print(f"Delete vehicle error: {str(e)}")
         return jsonify({'error': 'Internal server error'}), 500
 
+@app.route('/api/admin/applications', methods=['GET'])
+@token_required
+@admin_required
+def get_all_applications(admin):
+    try:
+        status = request.args.get('status')
+        operator = request.args.get('operator')
+        page = int(request.args.get('page', 1))
+        limit = 10
+        skip = (page - 1) * limit
+
+        query = {}
+        if status and status != 'all':
+            query['status'] = status
+        if operator:
+            query['operatorName'] = {'$regex': operator, '$options': 'i'}
+
+        total = applications_collection.count_documents(query)
+        applications = list(applications_collection.find(query).skip(skip).limit(limit).sort('createdAt', -1))
+
+        results = []
+        for application in applications:
+            trimmedApplication = {
+                "id" : str(application.get("_id")),
+                "status" : application.get("status"),
+                "operatorName": application.get("operatorName"),
+
+                "applicationId": application.get("applicationId"),
+                "routeFrom": application.get("routeFrom"),
+                "routeTo": application.get("routeTo"),
+                "vehicleCount": application.get("vehicleCount"),
+                "submittedDate": application.get("submittedDate"),
+            }
+            results.append(trimmedApplication)
+
+        total_pages = (total + limit - 1) // limit if total > 0 else 1
+        pagination = {
+            "current_page": page,
+            "total_pages": total_pages,
+            "total_items": total,
+            "has_previous": page > 1,
+            "has_next": page < total_pages,
+            "previous_page": page - 1 if page > 1 else None,
+            "next_page": page + 1 if page < total_pages else None,
+        }
+        return {
+            "success": True,
+            "results": results,
+            "pagination": pagination
+        }, 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    
 @app.route('/api/admin/applications/<application_id>/status', methods=['PUT'])
 @token_required
 @admin_required
@@ -935,7 +1012,6 @@ def get_officers(admin):
 """
 #### OFFICER ROUTES
 """
-
 @app.route("/api/officer/auth", methods = ["POST"])
 def officer_login():
     data = request.get_json()
@@ -1045,7 +1121,6 @@ def search_license(current_user):
     }
     return jsonify(response), 200
 
-
 @app.route("/api/officer/violations/<vehicle_id>", methods=["POST"])
 @officer_required
 def add_violation(officer, vehicle_id):
@@ -1075,10 +1150,10 @@ def add_violation(officer, vehicle_id):
 
     return jsonify({"message": "Violation added", "violation": violation}), 201
 
+
 """
 #### UNIVERSAL ROUTES
 """
-
 @app.route('/api/files/download', methods=['GET'])
 def download_file():
     try:

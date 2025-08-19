@@ -1,4 +1,4 @@
-import React from 'react'
+import React, {useEffect, useState} from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { TabsContent } from "@/components/ui/tabs"
@@ -11,41 +11,49 @@ import {
   XCircle,
   Search,
   Filter,
-  Download,
-  Eye,
-  Trash2,
   Edit,
+  ChevronRight,
+  ChevronLeft,
+  ExternalLink
 } from "lucide-react"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
-import { Application } from '@/types'
-
+import { Application, LocalUser } from '@/types'
+import useGetUserInfor from '@/hooks/useGetUserInfor'
+import EditApplicationDialog from '@/components/general/EditApplicationDialog'
+import DeleteApplicationDialog from '@/components/general/DeleteApplicationDialog'
+import EmptyScreen from '@/components/general/EmptyScreen'
+import Link from 'next/link'
 interface props{
-    applications : Application[],
     getStatusBadge : (valaue : string) => React.ReactNode
 }
 
-function Applications({applications, getStatusBadge}:props) {
-     const {   
+function Applications({ getStatusBadge}:props) {
+    const [page, setPage] = useState(1)
+    const {   
         filteredApplications,
         deleteDialog,
         searchTerm,
         statusFilter,
+        editDialog,
+        editFormData,
+        applications,
+        pagination,
         setStatusFilter,
         setSearchTerm,
-        setViewDialog,
         setDeleteDialog,
         handleDeleteApplication,
         handleEditApplication,
         handleUpdateApplicationStatus,
+        setEditFormData,
+        setEditDialog,
+        handleSaveEdit,
+        getApplications
         } = useAdmin();
+    
+    useEffect(() => {
+        const user:LocalUser | null = useGetUserInfor()
+        getApplications(user?.token_payload ?? null, page)
+    }, [page])
+      
   return (
      <TabsContent value="applications" className="space-y-6">
         <Card>
@@ -75,10 +83,6 @@ function Applications({applications, getStatusBadge}:props) {
                     <SelectItem value="rejected">Rejected</SelectItem>
                 </SelectContent>
                 </Select>
-                <Button variant="outline">
-                <Download className="h-4 w-4 mr-2" />
-                Export
-                </Button>
             </div>
             </CardContent>
         </Card>
@@ -86,7 +90,7 @@ function Applications({applications, getStatusBadge}:props) {
             <CardHeader>
             <CardTitle>Permit Applications</CardTitle>
             <CardDescription>
-                Showing {filteredApplications.length} of {applications.length} applications
+                Showing {applications.length} of {pagination?.total_items ?? 0} applications
             </CardDescription>
             </CardHeader>
             <CardContent>
@@ -102,97 +106,104 @@ function Applications({applications, getStatusBadge}:props) {
                 </TableRow>
                 </TableHeader>
                 <TableBody>
-                {filteredApplications.map((app: any) => (
-                    <TableRow key={app.id}>
-                    <TableCell className="font-medium">{app.id}</TableCell>
-                    <TableCell>
-                        <div>
-                        <p className="font-medium">{app.operatorName}</p>
-                        <p className="text-sm text-gray-600">{app.contactPerson}</p>
-                        </div>
-                    </TableCell>
-                    <TableCell>{app.route}</TableCell>
-                    <TableCell>{getStatusBadge(app.status)}</TableCell>
-                    <TableCell>{app.submittedDate}</TableCell>
-                    <TableCell>
-                        <div className="flex space-x-2">
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setViewDialog({ open: true, application: app })}
-                        >
-                            <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-blue-600"
-                            onClick={() => handleEditApplication(app)}
-                        >
-                            <Edit className="h-4 w-4" />
-                        </Button>
-                        {app.status === "pending" && (
-                            <>
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                className="text-green-600"
-                                onClick={() => handleUpdateApplicationStatus(app.id, "approved")}
-                            >
-                                <CheckCircle className="h-4 w-4" />
-                            </Button>
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                className="text-red-600"
-                                onClick={() => handleUpdateApplicationStatus(app.id, "rejected")}
-                            >
-                                <XCircle className="h-4 w-4" />
-                            </Button>
-                            </>
-                        )}
-                        <Dialog
-                            open={deleteDialog.open && deleteDialog.applicationId === app.id}
-                            onOpenChange={(open) =>
-                            setDeleteDialog({ open, applicationId: app.id, operatorName: app.operatorName })
-                            }
-                        >
-                            <DialogTrigger asChild>
-                            <Button variant="ghost" size="sm" className="text-red-600">
-                                <Trash2 className="h-4 w-4" />
-                            </Button>
-                            </DialogTrigger>
-                            <DialogContent>
-                            <DialogHeader>
-                                <DialogTitle>Delete Application</DialogTitle>
-                                <DialogDescription>
-                                Are you sure you want to delete application {app.id} from {app.operatorName}? This
-                                action cannot be undone.
-                                </DialogDescription>
-                            </DialogHeader>
-                            <DialogFooter>
+                    {applications.map((app: Application) => (
+                        <TableRow key={app.id}>
+                        <TableCell className="font-medium">{app.applicationId}</TableCell>
+                        <TableCell>
+                            <div>
+                                <p className="font-medium">{app.operatorName}</p>
+                                <p className="text-sm text-gray-600">{app.contactPerson}</p>
+                            </div>
+                        </TableCell>
+                        <TableCell>{app.routeFrom} - {app.routeTo}</TableCell>
+                        <TableCell>{getStatusBadge(app.status)}</TableCell>
+                        <TableCell>{app.submittedDate}</TableCell>
+                        <TableCell>
+                            <div className="flex space-x-2">
+                                <Link href = {`/uni/application?id=${app.applicationId}`} className='self-center'>
+                                    <ExternalLink className="h-4 w-4" />
+                                </Link>
+                                
                                 <Button
-                                variant="outline"
-                                onClick={() =>
-                                    setDeleteDialog({ open: false, applicationId: "", operatorName: "" })
-                                }
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-blue-600"
+                                    onClick={() => handleEditApplication(app)}
                                 >
-                                Cancel
+                                    <Edit className="h-4 w-4" />
                                 </Button>
-                                <Button variant="destructive" onClick={() => handleDeleteApplication(app.id)}>
-                                Delete
-                                </Button>
-                            </DialogFooter>
-                            </DialogContent>
-                        </Dialog>
-                        </div>
-                    </TableCell>
-                    </TableRow>
-                ))}
+                                {app.status === "pending" && (
+                                    <>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="text-green-600"
+                                        onClick={() => handleUpdateApplicationStatus(app.id, "approved")}
+                                    >
+                                        <CheckCircle className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="text-red-600"
+                                        onClick={() => handleUpdateApplicationStatus(app.id, "rejected")}
+                                    >
+                                        <XCircle className="h-4 w-4" />
+                                    </Button>
+                                    </>
+                                )}
+                                <DeleteApplicationDialog
+                                    deleteDialog={deleteDialog}
+                                    application={app}
+                                    setDeleteDialog={setDeleteDialog}
+                                    handleDeleteApplication={handleDeleteApplication}
+                                />
+                            </div>
+                        </TableCell>
+                        </TableRow>
+                    ))}
+                    {
+                        applications.length === 0 &&
+                        <TableRow>
+                            <TableCell colSpan={6}>
+                                <EmptyScreen message='No applications' />
+                            </TableCell>
+                        </TableRow> 
+                    }
                 </TableBody>
             </Table>
+            {pagination && (
+              <div className='w-full flex flex-row items-center justify-center'>
+                <Button
+                  variant="ghost"
+                  disabled={!pagination.has_previous}
+                  onClick={() => setPage(pagination.previous_page || 1)}
+                >
+                  <ChevronLeft className='h-4 w-4' />
+                </Button>
+
+                <p className='text-gray-600'>
+                  {pagination.current_page} / {pagination.total_pages}
+                </p>
+
+                <Button
+                  variant="ghost"
+                  disabled={!pagination.has_next}
+                  onClick={() => setPage(pagination.next_page || pagination.total_pages)}
+                >
+                  <ChevronRight className='h-4 w-4' />
+                </Button>
+              </div>
+            )}
             </CardContent>
         </Card>
+        <EditApplicationDialog
+            editDialog={editDialog}
+            setEditDialog={setEditDialog} 
+            handleSaveEdit={handleSaveEdit}
+            editFormData={editFormData}
+            setEditFormData={setEditFormData}
+        />
         </TabsContent>
   )
 }

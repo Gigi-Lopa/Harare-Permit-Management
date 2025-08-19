@@ -6,14 +6,17 @@ import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { ApplicationFull } from "@/types"
+import { ApplicationFull, LocalUser } from "@/types"
+import useGetUserInfor from "@/hooks/useGetUserInfor"
+import { useRouter } from "next/navigation"
 
 export default function ApplicationDetailsPage() {
+  const router = useRouter()
   const searchParams = useSearchParams()
   const id = searchParams.get("id")
   const [application, setApplication] = useState<ApplicationFull | null>(null)
   const [loading, setLoading] = useState(true)
-
+  const [role, setRole ] = useState("")
   useEffect(() => {
     if (!id) return;
     const fetchApplication = async () => {
@@ -28,6 +31,12 @@ export default function ApplicationDetailsPage() {
       }
     }
     fetchApplication()
+    const user: LocalUser | null = useGetUserInfor();
+    if (!user){
+      router.replace("/")
+    }
+    setRole(user?.user.role ?? "")
+
   }, [id])
 
   if (loading) return <div className="p-10">Loading...</div>
@@ -38,7 +47,7 @@ export default function ApplicationDetailsPage() {
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center py-4">
-            <Link href="/client/dashboard" className="mr-4">
+            <Link href={role === "operator" ? "/client/dashboard" :"/admin/dashboard"} className="mr-4">
               <Button variant="ghost" size="sm">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back
@@ -59,11 +68,11 @@ export default function ApplicationDetailsPage() {
             <CardDescription>Details about the applicant</CardDescription>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div><p className="font-medium">Operator Name</p>{application.operatorName}</div>
-            <div><p className="font-medium">Contact Person</p>{application.contactPerson}</div>
-            <div><p className="font-medium">Email</p>{application.email}</div>
-            <div><p className="font-medium">Phone</p>{application.phone}</div>
-            <div className="md:col-span-2"><p className="font-medium">Address</p>{application.address}</div>
+            <div><p className="font-medium text-gray-500 text-sm">Operator Name</p>{application.operatorName}</div>
+            <div><p className="font-medium text-gray-500 text-sm">Contact Person</p>{application.contactPerson}</div>
+            <div><p className="font-medium text-gray-500 text-sm">Email</p>{application.email}</div>
+            <div><p className="font-medium text-gray-500 text-sm">Phone</p>{application.phone}</div>
+            <div className="md:col-span-2"><p className="font-medium text-gray-500 text-sm">Address</p>{application.address}</div>
           </CardContent>
         </Card>
 
@@ -72,10 +81,10 @@ export default function ApplicationDetailsPage() {
             <CardTitle>Route Information</CardTitle>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div><p className="font-medium">Route</p>{application.routeFrom} → {application.routeTo}</div>
-            <div><p className="font-medium">Vehicles</p>{application.vehicleCount}</div>
-            <div><p className="font-medium">Operating Hours</p>{application.operatingHours}</div>
-            <div><p className="font-medium">Status</p>{application.status}</div>
+            <div><p className="font-medium text-gray-500 text-sm">Route</p>{application.routeFrom} → {application.routeTo}</div>
+            <div><p className="font-medium text-gray-500 text-sm">Vehicles</p>{application.vehicleCount}</div>
+            <div><p className="font-medium text-gray-500 text-sm">Operating Hours</p>{application.operatingHours}</div>
+            <div><p className="font-medium text-gray-500 text-sm">Status</p>{application.status}</div>
           </CardContent>
         </Card>
 

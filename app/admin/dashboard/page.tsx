@@ -1,40 +1,13 @@
 "use client"
-
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Label } from "@/components/ui/label"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Bus,
-  CheckCircle,
-  XCircle,
-  Search,
-  Filter,
-  Download,
-  Eye,
-  LogOut,
-  UserPlus,
-  Trash2,
-  Edit,
-  Plus,
-  DollarSign,
-  AlertCircle,
+  LogOut
 } from "lucide-react"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
-import { ApplicationViewDialog } from "@/components/application-view-dialog"
+
 import useAdmin from "@/hooks/useAdmin"
 import AdminCards from "@/components/general/AdminCards"
 import Applications from "@/components/tabs/admin/Applications"
@@ -45,15 +18,9 @@ import Officers from "@/components/tabs/admin/Officers"
 export default function AdminDashboardPage() {
   const {   
     user,
-    applications,
-    editDialog,
-    viewDialog, 
-    editFormData,
-    setEditFormData,
-    setViewDialog,
-    setEditDialog,
+    stats,
     handleLogout,
-    handleSaveEdit} = useAdmin();
+    } = useAdmin();
 
   const getStatusBadge = (status: string) => {
     const variants = {
@@ -103,10 +70,11 @@ export default function AdminDashboardPage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats Grid */}
        <AdminCards
-          totalActiveVehicles={254}
-          totalApplications={500}
-          totalPendingReviews={700}
-          totalRegisteredOperators={52}
+          totalActiveVehicles={stats?.registeredVehicles ?? 0}
+          totalApplications={stats?.totalApplications ?? 0}
+          totalPendingReviews={stats.pendingReviews ?? 0}
+          totalRegisteredOperators={stats.totalOperators ?? 0}
+          totalOfficers={stats.totalOfficers ?? 0}
        />
         <Tabs defaultValue="applications" className="space-y-6">
           <TabsList>
@@ -118,91 +86,11 @@ export default function AdminDashboardPage() {
 
           </TabsList>
 
-          <Applications applications={applications} getStatusBadge={getStatusBadge}/>
+          <Applications getStatusBadge={getStatusBadge}/>
           <Vehicles getStatusBadge={getStatusBadge}/>
-
-          
           <Officers/>
-           <Reports/>
-         
-          
+          <Reports/>
         </Tabs>
-
-        {/* Edit Application Dialog */}
-        <Dialog open={editDialog.open} onOpenChange={(open) => setEditDialog({ open, application: null })}>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Edit Application</DialogTitle>
-              <DialogDescription>Update application details</DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="operatorName">Operator Name</Label>
-                  <Input
-                    id="operatorName"
-                    value={editFormData.operatorName || ""}
-                    onChange={(e) => setEditFormData({ ...editFormData, operatorName: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="contactPerson">Contact Person</Label>
-                  <Input
-                    id="contactPerson"
-                    value={editFormData.contactPerson || ""}
-                    onChange={(e) => setEditFormData({ ...editFormData, contactPerson: e.target.value })}
-                  />
-                </div>
-              </div>
-              <div>
-                <Label htmlFor="route">Route</Label>
-                <Input
-                  id="route"
-                  value={editFormData.route || ""}
-                  onChange={(e) => setEditFormData({ ...editFormData, route: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label htmlFor="vehicleCount">Vehicle Count</Label>
-                <Input
-                  id="vehicleCount"
-                  type="number"
-                  value={editFormData.vehicleCount || ""}
-                  onChange={(e) => setEditFormData({ ...editFormData, vehicleCount: Number.parseInt(e.target.value) })}
-                />
-              </div>
-              <div>
-                <Label htmlFor="status">Status</Label>
-                <Select
-                  value={editFormData.status || ""}
-                  onValueChange={(value) => setEditFormData({ ...editFormData, status: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="under_review">Under Review</SelectItem>
-                    <SelectItem value="approved">Approved</SelectItem>
-                    <SelectItem value="rejected">Rejected</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setEditDialog({ open: false, application: null })}>
-                Cancel
-              </Button>
-              <Button onClick={handleSaveEdit}>Save Changes</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-        {/* Application View Dialog */}
-        <ApplicationViewDialog
-          open={viewDialog.open}
-          onOpenChange={(open) => setViewDialog({ open, application: null })}
-          application={viewDialog.application}
-        />
       </main>
     </div>
   )
