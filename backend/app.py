@@ -9,7 +9,7 @@ from functools import wraps
 import pytz
 from pprint import pprint
 import os
-import re
+import random
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
@@ -152,6 +152,27 @@ def officer_required(f):
 def hash_password(password):
     return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
 
+def generate_random():
+    return str(random.randint(1, 99999)).zfill(5)
+
+def generate_unique_application_id():
+    while True:
+        app_id = f"PRM-{generate_random()}"
+        if not applications_collection.find_one({"applicationId": app_id}):
+            return app_id
+        
+def generate_unique_vehicle_id():
+    while True:
+        VEH_ID = f"VEH-{generate_random()}"
+        if not vehicles_collection.find_one({"vehicleId": VEH_ID}):
+            return VEH_ID
+        
+def generate_unique_badge_number():
+    while True:
+        OFF_ID = f"OFF-{generate_random()}"
+        if not officers_collection.find_one({"badgeNumber": OFF_ID}):
+            return OFF_ID
+        
 """
 #### CLIENT ROUTES  ####
 """
@@ -170,6 +191,13 @@ def register():
         if users_collection.find_one({'email': data['email']}):
             return jsonify({'message': 'Email address already registered'}), 409
 
+        if users_collection.find_one({
+            "businessInformation" : {
+                "companyName" : data["companyName"]
+            }
+        }):
+            return jsonify({'message': 'Company name already registered'}), 409 
+        
         password_hash = hash_password(data['password'])
         
         user_doc = {
@@ -197,6 +225,7 @@ def register():
             "email" : user_doc["email"],
             "firstName" : user_doc.get("firstName"),
             "lastName" : user_doc.get("lastName"),
+            "companyName": user_doc.get("businessInformation", {}).get("companyName", ""),
             "role" : user_doc.get("role")
         }
 
@@ -239,12 +268,14 @@ def login():
         )
         
         user_data = {
-            '_id': str(user['_id']),
-            'email': user['email'],
-            'firstName': user.get('firstName'),
-            'lastName': user.get('lastName'),
-            'role': user['role'],
+            "_id": str(user.get("_id", "")),
+            "email": user.get("email", ""),
+            "firstName": user.get("firstName", ""),
+            "lastName": user.get("lastName", ""),
+            "companyName": user.get("businessInformation", {}).get("companyName", ""),
+            "role": user.get("role", ""),
         }
+
         
         return jsonify({
             'success': True,
@@ -290,7 +321,7 @@ def get_client_applications(current_user):
     try:
         id = str(current_user["_id"])
         page = max(1, int(request.args.get('page', 1)))  
-        limit = min(50, max(1, int(request.args.get('limit', 10))))       
+        limit = 5      
         skip = (page - 1) * limit
         
         total = applications_collection.count_documents({"ownerID": str(id)})
@@ -359,27 +390,27 @@ def create_application(current_user):
         for key in ['businessRegistrationCertificate', 'vehicleDocuments', 'insuranceCertificates', 'driversLicenses']:
             file = files.get(key)
             if file:
-                file_path  = save_file(file)
+                file_path = save_file(file)
                 saved_files[key] = "NULL" if not file_path else file_path
 
-        year = datetime.now(cat_tz).year
-        count = applications_collection.count_documents({'submittedDate': {'$regex': f'^{year}'}})
-        application_id = f"PRM-{year}-{str(count + 1).zfill(3)}"
-
+        
+        application_id = generate_unique_application_id()
+        
+        now = datetime.now(cat_tz)
         application = {
             'applicationId': application_id,
-            "ownerID" : str(current_user.get("_id")),
+            "ownerID": str(current_user.get("_id")),
             **form.to_dict(),
             'status': 'pending',
-            'submittedDate': datetime.now(cat_tz).strftime('%Y-%m-%d'),
-            'createdAt': datetime.now(cat_tz),
-            'updatedAt': datetime.now(cat_tz),
+            'submittedDate': now.strftime('%Y-%m-%d'),
+            'createdAt': now,
+            'updatedAt': now,
             'uploadedFiles': saved_files,
             'timeline': [
                 {
                     'status': 'submitted',
-                    'date': datetime.now().strftime('%Y-%m-%d'),
-                    'time': datetime.now().strftime('%H:%M'),
+                    'date': now.strftime('%Y-%m-%d'),
+                    'time': now.strftime('%H:%M'),
                     'description': 'Application submitted successfully',
                     'completed': True
                 }
@@ -387,6 +418,7 @@ def create_application(current_user):
         }
 
         applications_collection.insert_one(application)
+
         return jsonify({
             'success': True,
             'applicationId': application_id,
@@ -498,8 +530,7 @@ def register_vehicle(current_user):
         if existing_vehicle:
             return jsonify({'error': 'Vehicle with this registration number already exists'}), 409
         
-        vehicle_count = vehicles_collection.count_documents({})
-        vehicle_id = f"VEH-{str(vehicle_count + 1).zfill(3)}"
+        vehicle_id = generate_unique_vehicle_id()
 
         saved_files = {}
         for key in ['vehicleDocuments', 'insuranceCertificates', 'driversLicenses']:
@@ -509,7 +540,7 @@ def register_vehicle(current_user):
                 saved_files[key] = "NULL" if not file_path else file_path
 
         vehicle_doc = {
-            "ownerID" :  str(current_user.get('_id')),
+            "ownerID" : str(current_user.get('_id')) if  current_user.get("role") == "operator" else form["ownerID"],
             'vehicleId': vehicle_id,
             'registrationNumber': form['registrationNumber'].upper(),
             'make': form['make'],
@@ -693,8 +724,10 @@ def get_operators(admin):
         limit = int(request.args.get('limit', 50))
         
         # Build query
-        query = {}
-        if status and status != 'all':
+        query = {
+            'role': {'$ne': 'admin'},
+        }
+        if status and status != 'default':
             query['status'] = status
         
         if search:
@@ -707,8 +740,8 @@ def get_operators(admin):
         
         # Get operators with pagination
         skip = (page - 1) * limit
-        operators = list(operators_collection.find(query).skip(skip).limit(limit).sort('operatorName', 1))
-        total = operators_collection.count_documents(query)
+        operators = list(users_collection.find(query).skip(skip).limit(limit).sort('operatorName', 1))
+        total = users_collection.count_documents(query)
         
         # Add statistics for each operator
         for operator in operators:
@@ -785,16 +818,14 @@ def create_admin(admin):
 @admin_required
 def get_vehicles(admin):
     try:
-        # Get query parameters
         status = request.args.get('status')
         operator = request.args.get('operator')
         route = request.args.get('route')
         page = int(request.args.get('page', 1))
-        limit = int(request.args.get('limit', 50))
+        limit = int(request.args.get('limit', 10))
         
-        # Build query
         query = {}
-        if status and status != 'all':
+        if status and status != 'default':
             query['status'] = status
         
         if operator:
@@ -803,25 +834,47 @@ def get_vehicles(admin):
         if route:
             query['operatingRoute'] = {'$regex': route, '$options': 'i'}
         
-        # Get vehicles with pagination
         skip = (page - 1) * limit
         vehicles = list(vehicles_collection.find(query).skip(skip).limit(limit).sort('registrationNumber', 1))
         total = vehicles_collection.count_documents(query)
         
-        # Convert ObjectId to string
+        total_pages = (total + limit - 1) // limit if total > 0 else 1
+
+        results = []
         for vehicle in vehicles:
-            vehicle['_id'] = str(vehicle['_id'])
-        
-        return jsonify({
+            operator = users_collection.find_one({"_id" : ObjectId(vehicle.get("ownerID"))})
+            trimmedVehicle = {
+                "operatorName" : operator["businessInformation"]["companyName"],
+                "id" : str(vehicle.get("_id")),
+                "registrationNumber" : vehicle.get("registrationNumber"),
+                "model" : vehicle.get("model"),
+                "status" : vehicle.get("status"),
+                "registrationDate" :str(vehicle.get("createdAt")),
+                "driverName" : vehicle.get("driverName"),
+                "capacity" : vehicle.get("capacity"),
+                "operatingRoute": vehicle.get("operatingRoute")
+
+            }
+            results.append(trimmedVehicle)
+    
+        pagination = {
+            "current_page": page,
+            "total_pages": total_pages,
+            "total_items": total,
+            "has_previous": page > 1,
+            "has_next": page < total_pages,
+            "previous_page": page - 1 if page > 1 else None,
+            "next_page": page + 1 if page < total_pages else None,
+        }
+
+        return {
             'success': True,
-            'vehicles': vehicles,
-            'total': total,
-            'page': page,
-            'pages': (total + limit - 1) // limit
-        })
+            'vehicles': results,
+            "pagination":  pagination
+        }, 200
     
     except Exception as e:
-        print(f"Get vehicles error: {str(e)}")
+        app.logger.error(f"Get vehicles error: {str(e)}")
         return jsonify({'error': 'Internal server error'}), 500
 
 @app.route('/api/admin/vehicles/<vehicle_id>', methods=['DELETE'])
@@ -871,6 +924,7 @@ def get_all_applications(admin):
 
         results = []
         for application in applications:
+
             trimmedApplication = {
                 "id" : str(application.get("_id")),
                 "status" : application.get("status"),
@@ -998,9 +1052,7 @@ def create_officer(admin):
         }, 400
 
     hashed_password = hash_password(data["password"])
-    year = datetime.now(cat_tz).year
-    count = applications_collection.count_documents({'createdAt': {'$regex': f'^{year}'}})
-    badgeNumber = f"{year}{str(count + 1).zfill(3)}"
+    badgeNumber = generate_unique_badge_number()
 
     officer_doc = {
         "firstName"  : data["firstName"],
@@ -1096,6 +1148,47 @@ def delete_application(admin, application_id):
 
     except Exception as e:
         return jsonify({"error": f"Error deleting application: {str(e)}"}), 500
+
+@app.route("/api/admin/s/operator", methods = ["GET"])
+@token_required
+@admin_required
+def get_operator(admin):
+    query = request.args.get("query", None)
+    if not query:
+        return {
+            "success" : False,
+            "message" : "Query required"
+        }   
+    try:
+        operators = list(users_collection.find({
+                "businessInformation" : {
+                    "companyName" : {
+                        "$regex": f"{query}",
+                        "$options": "i"
+                    }
+                }
+        }).limit(5))
+
+        results = []
+        for operator in operators:
+            operator_ = {
+                "id" : str(operator.get("_id")),
+                "Company Name" : operator.get("businessInformation", {}).get("companyName", "")
+            }
+            results.append(operator_)
+        
+        return {
+            "success" : True,
+            "results" : results
+        }
+    except Exception as e:
+        app.logger.error(f"Error occured fetching operators : {e}")
+        return {
+            "message" : "Error occured"
+        }
+
+
+
 
 """
 #### OFFICER ROUTES
