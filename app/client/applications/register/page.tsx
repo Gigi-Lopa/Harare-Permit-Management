@@ -12,6 +12,10 @@ import { ArrowLeft, Upload, FileText, CheckCircle, AlertCircle } from "lucide-re
 import Link from "next/link"
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert"
 import useApplication from "@/hooks/useApplications"
+import { useEffect } from "react"
+import useGetUserInfor from "@/hooks/useGetUserInfor"
+import { LocalUser } from "@/types"
+import { useRouter } from "next/navigation"
 export default function NewApplicationPage() {
   const {    
     formData,
@@ -25,6 +29,13 @@ export default function NewApplicationPage() {
     handleInputChange,
     handleSubmit,
   } = useApplication();
+  const router = useRouter();
+
+  useEffect(()=>{
+    const user = useGetUserInfor()
+    if (!user) {return router.replace("/")}
+    handleInputChange("operatorName", user.user.companyName)
+  }, [])
  
   return (
     <div className="min-h-screen bg-gray-50">
@@ -59,7 +70,7 @@ export default function NewApplicationPage() {
                   <Input
                     id="operatorName"
                     value={formData.operatorName}
-                    onChange={(e) => handleInputChange("operatorName", e.target.value)}
+                    disabled
                     placeholder="Enter company name"
                     required
                   />

@@ -8,12 +8,13 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { ArrowLeft, Upload, FileText, Bus, AlertCircle, CheckCircle } from "lucide-react"
+import { ArrowLeft, Upload, FileText, Bus, AlertCircle, CheckCircle, User } from "lucide-react"
 import Link from "next/link"
 import useVehicles from "@/hooks/useVehicles"
 
 export default function RegisterVehiclePage() {
   const {
+    user,
     formData,
     loading,
     error,
@@ -23,6 +24,8 @@ export default function RegisterVehiclePage() {
     driversLicensesRef,
     vehicleRegistrationCertificateRef, 
     insuranceCertificatesRef,
+    operator,
+    setOperator,
     handleSubmit,
     handleInputChange 
   } = useVehicles();
@@ -49,21 +52,26 @@ export default function RegisterVehiclePage() {
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <form onSubmit={handleSubmit} className="space-y-8">
-          {error && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-
-          {success && (
-            <Alert className="border-green-200 bg-green-50">
-              <CheckCircle className="h-4 w-4 text-green-600" />
-              <AlertDescription className="text-green-800">{success}</AlertDescription>
-            </Alert>
-          )}
-
           {/* Vehicle Information */}
+          {
+            user &&
+            user.user.role === "admin" &&
+            <Card>
+              <CardContent className="mt-4">
+                <div className="relative">
+                    <Label>Company Name *</Label>
+                    <Input
+                      id="operator"
+                      value={operator}
+                      onChange={(e) => setOperator(e.target.value)}
+                      placeholder="e.g Raincheck Logistics"
+                      required
+                    />
+                    <div className="flex-1 flex flex-row bg-white absolute p-3 w-full border border-gray-300 top-[70px] rounded shadow-sm"></div>
+                </div>
+                </CardContent>
+            </Card>
+          }
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
@@ -384,6 +392,19 @@ export default function RegisterVehiclePage() {
               </div>
             </CardContent>
           </Card>
+          {error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
+          {success && (
+            <Alert className="border-green-200 bg-green-50">
+              <CheckCircle className="h-4 w-4 text-green-600" />
+              <AlertDescription className="text-green-800">{success}</AlertDescription>
+            </Alert>
+          )}
 
           <div className="flex justify-end space-x-4">
             <Link href="/client/dashboard">

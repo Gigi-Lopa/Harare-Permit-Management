@@ -28,31 +28,33 @@ interface props{
 
 function Applications({ getStatusBadge}:props) {
     const [page, setPage] = useState(1)
+    const [filterOption,setFilterOption] = useState("default")
     const {   
-        filteredApplications,
         deleteDialog,
         searchTerm,
-        statusFilter,
-        editDialog,
-        editFormData,
         applications,
         pagination,
-        setStatusFilter,
         setSearchTerm,
         setDeleteDialog,
         handleDeleteApplication,
-        handleEditApplication,
         handleUpdateApplicationStatus,
-        setEditFormData,
-        setEditDialog,
-        handleSaveEdit,
-        getApplications
+        getApplications,
+        handleSearch
         } = useAdmin();
     
     useEffect(() => {
         const user:LocalUser | null = useGetUserInfor()
-        getApplications(user?.token_payload ?? null, page)
-    }, [page])
+        getApplications(user?.token_payload ?? null, page, filterOption)
+    }, [page, filterOption])
+
+    const onClear = () =>{
+        setFilterOption("default")
+        setPage(1)
+        setSearchTerm("")
+
+        const user: LocalUser | null = useGetUserInfor()
+        getApplications(user?.token_payload ?? null, 1, "default")
+    }
       
   return (
      <TabsContent value="applications" className="space-y-6">
@@ -60,23 +62,29 @@ function Applications({ getStatusBadge}:props) {
             <CardContent className="pt-6">
             <div className="flex flex-col sm:flex-row gap-4">
                 <div className="flex-1">
-                <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                     <Input
-                    placeholder="Search applications..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
+                        placeholder="Search applications..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                            handleSearch(searchTerm)
+                            }
+                        }}
+                        className="pl-10"
                     />
+                    </div>
                 </div>
-                </div>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <Button variant={"destructive"} onClick={onClear}><XCircle/> Clear</Button>
+                <Select defaultValue={filterOption} value={filterOption} onValueChange={setFilterOption}>
                 <SelectTrigger className="w-full sm:w-48">
                     <Filter className="h-4 w-4 mr-2" />
                     <SelectValue placeholder="Filter by status" />
                 </SelectTrigger>
                 <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="default">All Status</SelectItem>
                     <SelectItem value="pending">Pending</SelectItem>
                     <SelectItem value="under_review">Under Review</SelectItem>
                     <SelectItem value="approved">Approved</SelectItem>
@@ -123,16 +131,7 @@ function Applications({ getStatusBadge}:props) {
                                 <Link href = {`/uni/application?id=${app.applicationId}`} className='self-center'>
                                     <ExternalLink className="h-4 w-4" />
                                 </Link>
-                                
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="text-blue-600"
-                                    onClick={() => handleEditApplication(app)}
-                                >
-                                    <Edit className="h-4 w-4" />
-                                </Button>
-                                {app.status === "pending" && (
+                                {(app.status === "pending" || app.status === "under_review") && (
                                     <>
                                     <Button
                                         variant="ghost"
@@ -197,13 +196,6 @@ function Applications({ getStatusBadge}:props) {
             )}
             </CardContent>
         </Card>
-        <EditApplicationDialog
-            editDialog={editDialog}
-            setEditDialog={setEditDialog} 
-            handleSaveEdit={handleSaveEdit}
-            editFormData={editFormData}
-            setEditFormData={setEditFormData}
-        />
         </TabsContent>
   )
 }

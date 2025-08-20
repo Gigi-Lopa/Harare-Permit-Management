@@ -9,11 +9,11 @@ import {
 } from "@/components/ui/dialog"
 import { Button } from "../ui/button"
 import { Trash2 } from "lucide-react"
-import { Application, DeleteDialogState } from "@/types"
+import { Application, ApplicationFull, DeleteDialogState } from "@/types"
 
 interface props {
     deleteDialog : DeleteDialogState,
-    application: Application,
+    application: any,
     setDeleteDialog: React.Dispatch<React.SetStateAction<DeleteDialogState>>;
     handleDeleteApplication: (id: string ) => void;
 }
@@ -47,7 +47,7 @@ function DeleteApplicationDialog({deleteDialog, application, setDeleteDialog, ha
             >
             Cancel
             </Button>
-            <Button variant="destructive" onClick={() => handleDeleteApplication(application.id)}>
+            <Button variant="destructive" onClick={() => handleDeleteApplication(application.applicationId)}>
             Delete
             </Button>
         </DialogFooter>

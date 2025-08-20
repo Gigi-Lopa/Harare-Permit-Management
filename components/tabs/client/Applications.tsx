@@ -26,9 +26,7 @@ function Applications({ getStatusIcon ,getStatusBadge, setApplicationId, handleS
   const [page, setPage] = useState(1)
 
   useEffect(()=>{
-    if(applications.length === 0){
-      getUserApplications(page)
-    }
+    getUserApplications(page)
   }, [page])
 
   return (
@@ -110,8 +108,9 @@ function Applications({ getStatusIcon ,getStatusBadge, setApplicationId, handleS
                 <Button
                   variant="ghost"
                   disabled={!pagination.has_next}
-                  onClick={() => setPage(pagination.next_page || pagination.total_pages)}
+                  onClick={() => {setPage(pagination.next_page || pagination.total_pages);}}
                 >
+                  
                   <ChevronRight className='h-4 w-4' />
                 </Button>
               </div>

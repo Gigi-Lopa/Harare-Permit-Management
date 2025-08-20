@@ -6,6 +6,7 @@ import { useRef, useState, useEffect, use } from "react"
 import { useRouter } from "next/navigation"
 import { LocalUser, Pagination, Vehicle } from "@/types"
 import useGetUserInfor from "@/hooks/useGetUserInfor"
+import Operators from "@/components/tabs/admin/Operators"
 
 export default function useVehicles(){
   const [user, setUser] = useState<LocalUser | null>(null)
@@ -39,6 +40,7 @@ export default function useVehicles(){
   const [success, setSuccess] = useState("")
   const router = useRouter()
   const [pagination, setPagination] = useState<Pagination | null>(null);
+  const [operator, setOperator] = useState("")
   const [getVehiclesStatus, setGetVehiclesStatus] = useState({
     loading : true,
     error : false,
@@ -167,6 +169,7 @@ export default function useVehicles(){
   }
 
   return{
+    user,
     formData,
     loading,
     error,
@@ -179,6 +182,8 @@ export default function useVehicles(){
     vehicles,
     pagination,
     getVehiclesStatus,
+    operator,
+    setOperator,
     getVehicles,
     handleSubmit,
     handleInputChange 

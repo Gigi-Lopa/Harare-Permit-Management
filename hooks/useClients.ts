@@ -50,6 +50,7 @@ export default function useClient(){
             empty: !response.results || response.results.length === 0
             }));
             setPagination(response.pagination)
+            
             return;
         }
     })

@@ -10,13 +10,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "../ui/label"
 import { Input } from "../ui/input"
 import { Button } from "../ui/button"
+import { ApplicationFull } from "@/types"
 
 interface props{
     editDialog: {
         open: boolean,
-        application: any | null },
+        application: ApplicationFull | null },
     setEditDialog: (dialog: { open: boolean, application: any | null }) => void,
-    editFormData: any,
+    editFormData: ApplicationFull,
     handleSaveEdit: () => void,
     setEditFormData: (data: any) => void,
 }
@@ -49,12 +50,30 @@ function EditApplicationDialog({editDialog, setEditDialog,handleSaveEdit, setEdi
                 </div>
               </div>
               <div>
-                <Label htmlFor="route">Route</Label>
+                <Label htmlFor="operatingHours">Opertaing Hours</Label>
                 <Input
-                  id="route"
-                  value={editFormData.route || ""}
+                  id="operatingHours"
+                  value={editFormData.operatingHours || ""}
                   onChange={(e) => setEditFormData({ ...editFormData, route: e.target.value })}
                 />
+              </div>
+                  <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="operatorName">Route from</Label>
+                  <Input
+                    id="routeTo"
+                    value={editFormData.routeTo || ""}
+                    onChange={(e) => setEditFormData({ ...editFormData, operatorName: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="routeTo">Route To</Label>
+                  <Input
+                    id="routeTo"
+                    value={editFormData.routeTo || ""}
+                    onChange={(e) => setEditFormData({ ...editFormData, contactPerson: e.target.value })}
+                  />
+                </div>
               </div>
               <div>
                 <Label htmlFor="vehicleCount">Vehicle Count</Label>

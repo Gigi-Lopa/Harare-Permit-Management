@@ -28,9 +28,7 @@ function Vehicles() {
   }
 
   useEffect(() => {
-    if(!vehicles){
-      getVehicles(page)
-    }
+    getVehicles(page)
   }, [page])
 
   return (
@@ -39,7 +37,7 @@ function Vehicles() {
         <h2 className="text-2xl font-bold text-gray-900">
           My Vehicles ({pagination?.total_items || 0})
         </h2>
-        <Link href="/client/vehicles/register">
+        <Link href="/uni/vehicles/register">
           <Button>
             <Plus className="h-4 w-4 mr-2" />
             Register Vehicle

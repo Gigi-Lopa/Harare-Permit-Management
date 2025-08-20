@@ -26,8 +26,41 @@ export type Vehicle = {
     registrationNumber : string,
     model : string,
     status : string,
-    lastInspection : string
+    operatorName?: string,
+    lastInspection? : string
+    capacity? : number,
+    driverName? : string,
+    operatingRoute? : string,
+    registrationDate?: string
 }
+export type VehicleFull = {
+  _id:string;
+  ownerID: string;
+  vehicleId: string;
+  registrationNumber: string;
+  make: string;
+  model: string;
+  year: number;
+  capacity: number;
+  engineNumber: string;
+  chassisNumber: string;
+  color: string;
+  fuelType: "petrol" | "diesel" | "electric" | string;
+  insuranceCompany: string;
+  insurancePolicyNumber: string;
+  insuranceExpiryDate: string; 
+  roadworthyExpiryDate: string;
+  operatingRoute: string;
+  driverName: string;
+  driverLicenseNumber: string;
+  driverLicenseExpiry: string; 
+  status: "pending_approval" | "approved" | "rejected" | string;
+  uploadedFiles: UploadedFiles; 
+  registrationDate: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 
 export type User = {
     _id : string,
@@ -35,6 +68,7 @@ export type User = {
     firstName : string,
     lastName : string,
     badgeNumber?: string,
+    companyName?: string,
     role : string
 }
 
@@ -69,7 +103,7 @@ export interface UploadedFiles {
   driversLicenses?: string
 }
 export interface ApplicationFull {
-  id: string
+  _id: string
   applicationId: string
   ownerID: string
   operatorName: string

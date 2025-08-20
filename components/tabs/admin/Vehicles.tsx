@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { TabsContent } from "@/components/ui/tabs"
@@ -12,24 +12,53 @@ import {
   Eye,
   Trash2,
   Edit,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react"
+import useAdminVehicles from '@/hooks/useAdminVehicles'
+import useGetUserInfor from '@/hooks/useGetUserInfor'
+import { LocalUser, Vehicle } from '@/types'
+import Link from 'next/link'
 
 interface props {
     getStatusBadge : (value: string) => React.ReactNode
 }
 function Vehicles({getStatusBadge}: props) {
+    const {
+        user,
+        vehicles,
+        pagination,
+        setUser,
+        getVehicles
+    } = useAdminVehicles();
+    const [page, setPage] = useState(1)
+    const [filterOption, setFilterOption] = useState("default")
+ 
+    useEffect(() => {
+          const user:LocalUser | null = useGetUserInfor()
+          getVehicles(page, user?.token_payload ?? null ,filterOption)
+      }, [page, filterOption])
+  
   return (
    <TabsContent value="vehicles" className="space-y-6">
         <div className="flex justify-between items-center">
             <h2 className="text-2xl font-bold text-gray-900">Vehicle Management</h2>
-            <Button>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Vehicle
-            </Button>
+            <Link href="/uni/vehicles/register">
+                <Button>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Register Vehicle
+                </Button>
+            </Link>
         </div>
 
         <Card>
-            <CardContent className="pt-6">
+            <CardHeader>
+                <CardTitle>Registered Vehicles</CardTitle>
+                <CardDescription>
+                    Showing {vehicles ? vehicles.length : 0} of {pagination?.total_items ?? 0} vehicles
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="">
             <div className="flex flex-col sm:flex-row gap-4 mb-6">
                 <div className="flex-1">
                 <div className="relative">
@@ -37,12 +66,12 @@ function Vehicles({getStatusBadge}: props) {
                     <Input placeholder="Search vehicles..." className="pl-10" />
                 </div>
                 </div>
-                <Select defaultValue="all">
+                <Select defaultValue="default">
                 <SelectTrigger className="w-48">
                     <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="default">All Status</SelectItem>
                     <SelectItem value="active">Active</SelectItem>
                     <SelectItem value="maintenance">Maintenance</SelectItem>
                     <SelectItem value="retired">Retired</SelectItem>
@@ -59,41 +88,23 @@ function Vehicles({getStatusBadge}: props) {
                     <TableHead>Capacity</TableHead>
                     <TableHead>Route</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Last Inspection</TableHead>
+                    <TableHead>Registration Date</TableHead>
                     <TableHead>Actions</TableHead>
                 </TableRow>
                 </TableHeader>
                 <TableBody>
-                {[
-                    {
-                    id: "VEH-001",
-                    registrationNumber: "AEZ 1234",
-                    operatorName: "City Express Transport",
-                    model: "Toyota Hiace",
-                    capacity: 14,
-                    route: "CBD - Chitungwiza",
-                    status: "active",
-                    lastInspection: "2024-01-01",
-                    },
-                    {
-                    id: "VEH-002",
-                    registrationNumber: "AEZ 5678",
-                    operatorName: "Harare Commuter Services",
-                    model: "Nissan Caravan",
-                    capacity: 16,
-                    route: "CBD - Mbare",
-                    status: "maintenance",
-                    lastInspection: "2023-12-15",
-                    },
-                ].map((vehicle) => (
+                
+                {vehicles &&
+                vehicles
+                .map((vehicle:Vehicle) => (
                     <TableRow key={vehicle.id}>
                     <TableCell className="font-medium">{vehicle.registrationNumber}</TableCell>
                     <TableCell>{vehicle.operatorName}</TableCell>
                     <TableCell>{vehicle.model}</TableCell>
                     <TableCell>{vehicle.capacity} passengers</TableCell>
-                    <TableCell>{vehicle.route}</TableCell>
+                    <TableCell>{vehicle.operatingRoute}</TableCell>
                     <TableCell>{getStatusBadge(vehicle.status)}</TableCell>
-                    <TableCell>{vehicle.lastInspection}</TableCell>
+                    <TableCell className='text-center'>{vehicle.registrationDate?.split(" ")[0]}</TableCell>
                     <TableCell>
                         <div className="flex space-x-2">
                         <Button variant="ghost" size="sm">
@@ -111,6 +122,29 @@ function Vehicles({getStatusBadge}: props) {
                 ))}
                 </TableBody>
             </Table>
+             {pagination && (
+              <div className='w-full flex flex-row items-center justify-center'>
+                <Button
+                  variant="ghost"
+                  disabled={!pagination.has_previous}
+                  onClick={() => setPage(pagination.previous_page || 1)}
+                >
+                  <ChevronLeft className='h-4 w-4' />
+                </Button>
+
+                <p className='text-gray-600'>
+                  {pagination.current_page} / {pagination.total_pages}
+                </p>
+
+                <Button
+                  variant="ghost"
+                  disabled={!pagination.has_next}
+                  onClick={() => setPage(pagination.next_page || pagination.total_pages)}
+                >
+                  <ChevronRight className='h-4 w-4' />
+                </Button>
+              </div>
+            )}
             </CardContent>
         </Card>
     </TabsContent>
