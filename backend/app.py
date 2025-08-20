@@ -861,7 +861,7 @@ def get_all_applications(admin):
         skip = (page - 1) * limit
 
         query = {}
-        if status and status != 'all':
+        if status and status != 'default':
             query['status'] = status
         if operator:
             query['operatorName'] = {'$regex': operator, '$options': 'i'}
@@ -875,7 +875,6 @@ def get_all_applications(admin):
                 "id" : str(application.get("_id")),
                 "status" : application.get("status"),
                 "operatorName": application.get("operatorName"),
-
                 "applicationId": application.get("applicationId"),
                 "routeFrom": application.get("routeFrom"),
                 "routeTo": application.get("routeTo"),
@@ -901,15 +900,52 @@ def get_all_applications(admin):
         }, 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-    
-@app.route('/api/admin/applications/<application_id>/status', methods=['PUT'])
+
+
+@app.route('/api/admin/s/applications', methods=['GET'])
+@token_required
+@admin_required
+def search_admin_application(admin):
+    try:
+        query = request.args.get("applicationId", "").strip()
+
+        if not query:
+            return jsonify({"error": "applicationId query parameter is required"}), 400
+
+        applications = list(applications_collection.find(
+            {"applicationId": {"$regex": query, "$options": "i"}}
+        ).limit(10))
+
+        if not applications:
+            return jsonify({"message": "No applications found"}), 404
+
+        results = []
+        for application in applications:
+            trimmedApplication = {
+                "id" : str(application.get("_id")),
+                "status" : application.get("status"),
+                "operatorName": application.get("operatorName"),
+                "applicationId": application.get("applicationId"),
+                "routeFrom": application.get("routeFrom"),
+                "routeTo": application.get("routeTo"),
+                "vehicleCount": application.get("vehicleCount"),
+                "submittedDate": application.get("submittedDate"),
+            }
+            results.append(trimmedApplication)
+
+        return jsonify(results), 200
+
+    except Exception as e:
+        app.logger.error(f"An error occured searching for application: {e}")
+        return jsonify({"error": f"Error searching application: {str(e)}"}), 500
+
+@app.route('/api/admin/application/<application_id>/status', methods=['PUT'])
 @token_required
 @admin_required
 def update_application_status(admin, application_id):
     try:
         data = request.get_json()
         new_status = data.get('status')
-        comment = data.get('comment', '')
         
         if not new_status:
             return jsonify({'error': 'Status is required'}), 400
@@ -924,12 +960,11 @@ def update_application_status(admin, application_id):
             'date': datetime.now().strftime('%Y-%m-%d'),
             'time': datetime.now().strftime('%H:%M'),
             'description': f'Status updated to {new_status}',
-            'comment': comment,
-            'updatedBy': str(admin['_id'])
+            "completed" : True
         }
         
         applications_collection.update_one(
-            {'applicationId': application_id},
+            {'_id': ObjectId(application_id)},
             {
                 '$set': update_data,
                 '$push': {'timeline': timeline_entry}
@@ -939,6 +974,7 @@ def update_application_status(admin, application_id):
         return jsonify({'message': 'Status updated successfully'})
     
     except Exception as e:
+        app.logger.error(f"Error updating status: {e}")
         return jsonify({'error': str(e)}), 500
 
 @app.route("/api/admin/create/officer", methods = ["PUT"])
@@ -1008,6 +1044,58 @@ def create_officer(admin):
 @admin_required
 def get_officers(admin):
     pass
+
+@app.route('/api/admin/application/<application_id>', methods = ['PUT'])
+@token_required
+@admin_required
+def edit_application(admin, application_id):
+    try:
+        data = request.get_json()
+        data.pop("_id", None)
+        now = datetime.now(cat_tz)
+        new_timeline_entry = {
+            "status": "edited",
+            "description": "Application details updated",
+            "date": now.strftime("%Y-%m-%d"),
+            "time": now.strftime("%H:%M"),
+            "completed": True
+        }
+
+        data["updatedAt"] = now.isoformat()
+        if "timeline" in data:
+            del data["timeline"]
+
+        result = applications_collection.update_one(
+            {"_id": ObjectId(application_id)},
+            {
+                "$set": data,
+                "$push": {"timeline": new_timeline_entry}
+            }
+        )
+
+        if result.matched_count == 0:
+            return jsonify({"error": "Application not found"}), 404
+
+        return jsonify({"message": "Application updated successfully"}), 200
+
+    except Exception as e:
+        app.logger.error1(f"An Error occured: {e}")
+        return jsonify({"error": f"Error editing application: {str(e)}"}), 500
+
+@app.route('/api/applications/<application_id>', methods=['DELETE'])
+@token_required
+@admin_required
+def delete_application(admin, application_id):
+    try:
+        result = applications_collection.delete_one({"applicationId": application_id})
+
+        if result.deleted_count == 0:
+            return jsonify({"error": "Application not found"}), 404
+
+        return jsonify({"message": "Application deleted successfully"}), 200
+
+    except Exception as e:
+        return jsonify({"error": f"Error deleting application: {str(e)}"}), 500
 
 """
 #### OFFICER ROUTES
