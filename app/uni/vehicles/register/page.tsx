@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-
+import { useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,6 +11,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { ArrowLeft, Upload, FileText, Bus, AlertCircle, CheckCircle, User } from "lucide-react"
 import Link from "next/link"
 import useVehicles from "@/hooks/useVehicles"
+import useDebounce from "@/hooks/useDebounce"
 
 export default function RegisterVehiclePage() {
   const {
@@ -24,11 +25,24 @@ export default function RegisterVehiclePage() {
     driversLicensesRef,
     vehicleRegistrationCertificateRef, 
     insuranceCertificatesRef,
+    searchValue,
+    operators,
     operator,
+    show,
+    setShow, 
     setOperator,
+    handleSearchOperator,
+    setSearchValue,
     handleSubmit,
     handleInputChange 
   } = useVehicles();
+  const debouncedSearch = useDebounce(searchValue, 500)
+
+  useEffect(() => {
+    if (debouncedSearch) {
+      handleSearchOperator(debouncedSearch);
+    }
+  }, [debouncedSearch])
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -36,12 +50,14 @@ export default function RegisterVehiclePage() {
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center py-4">
-            <Link href="/client/dashboard" className="mr-4">
-              <Button variant="ghost" size="sm">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back
-              </Button>
-            </Link>
+            {user &&
+              <Link  href={user?.user.role != "admin" ?  "/client/dashboard" : "/admin/dashboard"} className="mr-4">
+                <Button variant="ghost" size="sm">
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back
+                </Button>
+              </Link>
+            }
             <div>
               <h1 className="text-xl font-bold text-gray-900">Register Vehicle</h1>
               <p className="text-sm text-gray-600">Register a new commuter omnibus vehicle</p>
@@ -62,12 +78,36 @@ export default function RegisterVehiclePage() {
                     <Label>Company Name *</Label>
                     <Input
                       id="operator"
-                      value={operator}
-                      onChange={(e) => setOperator(e.target.value)}
+                      onBlur={()=>setShow(false)}
+                      onFocus={()=> {if(operators) setShow(true)}}
+                      value={searchValue}
+                      onChange={(e) => setSearchValue(e.target.value)}
                       placeholder="e.g Raincheck Logistics"
-                      required
+                      required 
                     />
-                    <div className="flex-1 flex flex-row bg-white absolute p-3 w-full border border-gray-300 top-[70px] rounded shadow-sm"></div>
+                    {
+                      show &&
+                      <div className="flex-1 flex flex-col gap-3 bg-white absolute p-3 w-full border border-gray-300 top-[70px] rounded shadow-sm">
+                        {operators && operators.map((operator:any)=>(
+                          <div key={operator.id} className="w-full  text-center border border-b rounded border-gray-300 ">
+                            <Button variant={"ghost"} type="button" className="w-full" onMouseDown={()=> {
+                                handleInputChange("ownerID", operator.id)
+                                setOperator(`${operator.name} / ${operator.bsNumber}`)
+                                setShow(false)
+                              }
+                            }>{operator.name}</Button>
+                          </div>
+                        ))}
+                        {
+                          operators && operators.length  === 0 &&
+                          <h6 className="text-center text-gray-500">No results</h6>
+                        }
+                    </div>
+                    }
+                  {
+                    operator &&
+                    <h6 className="text-gray-500 pt-5 text-sm">Selected company : {operator ?? ""}</h6>
+                  }
                 </div>
                 </CardContent>
             </Card>
@@ -100,7 +140,7 @@ export default function RegisterVehiclePage() {
                     value={formData.capacity}
                     onChange={(e) => handleInputChange("capacity", e.target.value)}
                     placeholder="e.g., 14"
-                    min="10"
+                    min="1"
                     max="30"
                     required
                   />

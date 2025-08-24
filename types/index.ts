@@ -6,7 +6,6 @@ export type TimelineStep = {
   completed: boolean
   current?: boolean
 }
-
 export type Application = {
     id : string,
     route? : string,
@@ -20,7 +19,6 @@ export type Application = {
     contactPerson?: string,
     timeline?: TimelineStep[]   
 }
-
 export type Vehicle = {
     id : string,
     registrationNumber : string,
@@ -60,23 +58,18 @@ export type VehicleFull = {
   createdAt: string;
   updatedAt: string;
 };
-
-
 export type User = {
     _id : string,
     email : string,
     firstName : string,
     lastName : string,
     badgeNumber?: string,
-    companyName?: string,
     role : string
 }
-
 export type LocalUser = {
     user : User,
     token_payload : string
 }
-
 export type Pagination ={
     current_page: number,
     total_pages: number,
@@ -86,7 +79,6 @@ export type Pagination ={
     previous_page: number,
     next_page: number
 }
-
 export type DashboardStats = {
     totalApplications? : number,
     totalOperators? : number,
@@ -95,7 +87,6 @@ export type DashboardStats = {
     registeredVehicles? : number,
     pendingReviews? : number
 }
-
 export interface UploadedFiles {
   businessRegistrationCertificate?: string
   vehicleDocuments?: string
@@ -132,9 +123,50 @@ export type SearchEntry = {
   status: string
   operatorName: string
 }
-
 export type DeleteDialogState = {
   open: boolean;
   applicationId: string | null;
   operatorName: string | null;
 };
+export interface Operator {
+  _id: string; 
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  role: string; 
+  businessInformation: {
+    companyName: string;
+    businessRegistration: string;
+    businessAddress: string;
+    contactPerson: string;
+  };
+  status : string;
+  createdAt: string; 
+  updatedAt: string; 
+  lastLogin?: string; 
+  activePermits?: number;
+  vehicles?: number;
+}
+export interface Officer {
+  _id: string
+  firstName: string
+  lastName: string
+  email: string
+  badgeNumber: string
+  department: "traffic_enforcement" | "permit_compliance" | "vehicle_inspection"
+  phoneNumber: string
+  rank: "officer" | "senior_officer" | "inspector" | "chief_inspector"
+  status: "active" | "inactive" | "on_leave"
+  createdAt: string 
+  updatedAt: string 
+}
+export interface Violation {
+  _id: string
+  vehicle_owner: string
+  officer_name: string
+  violation: string
+  fine: string
+  date: string
+  status: "paid" | "unpaid"
+}

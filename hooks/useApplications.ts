@@ -90,14 +90,35 @@ export default function useApplication(){
       setIsLoading(false)
     }
   }
-    useEffect(()=>{ 
-      const user = useGetUserInfor()
-      if(user){
-        setUser(user);
-      } else {
-        router.replace("/")
+  
+  useEffect(()=>{ 
+    const user = useGetUserInfor()
+    if(user){
+      setUser(user);
+      getAdminInformation(user)
+    } else {
+      return router.replace("/")
+    }
+  }, [])
+
+  const getAdminInformation = (user: LocalUser) => {
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/information`, {
+      method : "GET",
+      headers : {
+        "Authorization" :`Bearer ${user?.token_payload}`
       }
-    }, [])
+    })
+    .then(response => response.json())
+    .then(response =>{
+      if(response.success){
+        handleInputChange("operatorName", response.user.companyName)
+        handleInputChange("businessRegistration", response.user.businessRegistration)
+        handleInputChange("address", response.user.businessAddress)
+      }
+    })
+    .catch(err => console.log(err))
+  }
+
   return{
     formData,
     isLoading,

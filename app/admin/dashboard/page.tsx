@@ -14,6 +14,7 @@ import Applications from "@/components/tabs/admin/Applications"
 import Vehicles from "@/components/tabs/admin/Vehicles"
 import Reports from "@/components/tabs/admin/Reports"
 import Officers from "@/components/tabs/admin/Officers"
+import Operators from "@/components/tabs/admin/Operators"
 
 export default function AdminDashboardPage() {
   const {   
@@ -55,7 +56,7 @@ export default function AdminDashboardPage() {
             <div className="flex items-center space-x-4">
               <Avatar>
                 <AvatarFallback>
-                  {user.firstName ? `${user.firstName[0]}${user.lastName?.[0] || ""}` : "A"}
+                  {user.user.firstName ? `${user.user.firstName[0]}${user.user.lastName?.[0] || ""}` : "A"}
                 </AvatarFallback>
               </Avatar>
               <Button variant="ghost" size="sm" onClick={handleLogout}>
@@ -88,6 +89,7 @@ export default function AdminDashboardPage() {
 
           <Applications getStatusBadge={getStatusBadge}/>
           <Vehicles getStatusBadge={getStatusBadge}/>
+          <Operators/>
           <Officers/>
           <Reports/>
         </Tabs>

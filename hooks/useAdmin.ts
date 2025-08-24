@@ -78,7 +78,7 @@ export default function useAdmin(){
 
   const handleLogout = () => {
     localStorage.removeItem("token")
-    router.push("/auth/login")
+    router.push("/")
   }
 
   const handleSaveEdit = async () => {
@@ -143,7 +143,7 @@ export default function useAdmin(){
 
   const handleDeleteApplication = async (applicationId: string) => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/applications/${applicationId}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/applications/${applicationId}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${user?.token_payload}`,
@@ -157,9 +157,7 @@ export default function useAdmin(){
           router.replace("/admin/dashboard")
           return;
         }
-       
         setDeleteDialog({ open: false, applicationId: "", operatorName: "" })
-        alert("Application deleted successfully!")
       } else {
         alert("Failed to delete application")
       }

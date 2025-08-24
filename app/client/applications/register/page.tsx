@@ -34,7 +34,6 @@ export default function NewApplicationPage() {
   useEffect(()=>{
     const user = useGetUserInfor()
     if (!user) {return router.replace("/")}
-    handleInputChange("operatorName", user.user.companyName)
   }, [])
  
   return (
@@ -66,12 +65,11 @@ export default function NewApplicationPage() {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="operatorName">Company/Operator Name *</Label>
+                  <Label htmlFor="operatorName">Company Name * </Label>
                   <Input
                     id="operatorName"
                     value={formData.operatorName}
                     disabled
-                    placeholder="Enter company name"
                     required
                   />
                 </div>
@@ -115,8 +113,8 @@ export default function NewApplicationPage() {
                 <Label htmlFor="address">Business Address *</Label>
                 <Textarea
                   id="address"
+                  disabled
                   value={formData.address}
-                  onChange={(e) => handleInputChange("address", e.target.value)}
                   placeholder="Enter complete business address"
                   required
                 />
@@ -127,7 +125,7 @@ export default function NewApplicationPage() {
                 <Input
                   id="businessRegistration"
                   value={formData.businessRegistration}
-                  onChange={(e) => handleInputChange("businessRegistration", e.target.value)}
+                  disabled
                   placeholder="Enter business registration number"
                 />
               </div>

@@ -31,7 +31,7 @@ export default function useClient(){
           router.replace("/")
         return;
         }
-    getDashbaord(user?.token_payload || "")
+    getDashboard(user?.token_payload || "")
   }, [])
 
   const getUserApplications = async (page: number) => {
@@ -67,7 +67,7 @@ export default function useClient(){
     router.push("/")
   } 
 
-  const getDashbaord = (token: string) =>{
+  const getDashboard = (token: string) =>{
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/client/dashboard`, {
       method : "GET",
       headers  :{

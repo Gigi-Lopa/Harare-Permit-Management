@@ -4,12 +4,14 @@ import type React from "react"
 
 import { useRef, useState, useEffect, use } from "react"
 import { useRouter } from "next/navigation"
-import { LocalUser, Pagination, Vehicle } from "@/types"
+import { LocalUser, Operator, Pagination, Vehicle } from "@/types"
 import useGetUserInfor from "@/hooks/useGetUserInfor"
-import Operators from "@/components/tabs/admin/Operators"
 
 export default function useVehicles(){
   const [user, setUser] = useState<LocalUser | null>(null)
+  const [pagination, setPagination] = useState<Pagination | null>(null);
+  const [vehicles, setVehicles] = useState<Vehicle[] | null>(null)
+  const [operators,setOperators] = useState<any>(null)
   const [formData, setFormData] = useState({
     registrationNumber: "",
     make: "",
@@ -34,13 +36,13 @@ export default function useVehicles(){
     driversLicenses: null,
     ownerID: "",
   })
-  const [vehicles, setVehicles] = useState<Vehicle[] | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
   const router = useRouter()
-  const [pagination, setPagination] = useState<Pagination | null>(null);
-  const [operator, setOperator] = useState("")
+  const [operator, setOperator] = useState<string | null>(null)
+  const [searchValue, setSearchValue] = useState("")
+  const [show, setShow] = useState(false)
   const [getVehiclesStatus, setGetVehiclesStatus] = useState({
     loading : true,
     error : false,
@@ -79,7 +81,7 @@ export default function useVehicles(){
     setLoading(true);
     setError("");
     setSuccess("");
-
+   
     try {
         const fd = new FormData();
         Object.entries(formData).forEach(([key, value]) => {
@@ -116,7 +118,7 @@ export default function useVehicles(){
             "Vehicle registered successfully! It will be reviewed by the authorities."
         );
         setTimeout(() => {
-            router.push("/client/dashboard");
+            router.push(user?.user.role === "admin" ? "/admin/dashboard" : "/client/dashboard");
         }, 3000);
         } else {
          setError(data.error || "Vehicle registration failed");
@@ -168,6 +170,37 @@ export default function useVehicles(){
     .finally(()=>setGetVehiclesStatus((prev)=> ({...prev, loading : false})))
   }
 
+  const handleSearchOperator = (debouncedSearch : string) => {
+    if(searchValue.trim().length === 0) return;
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/operators?search=${debouncedSearch}`, {
+      method :"GET",
+      headers: {
+        "Authorization" : `Bearer ${user?.token_payload ?? ""}`
+      }
+    })
+    .then(response => response.json())
+    .then(response =>{
+      if(response.success){
+        setShow(true)
+        const ops = []
+        for(const operator of response.operators){
+          ops.push({
+            id : operator["_id"],
+            bsNumber : operator["businessInformation"]["businessRegistration"],
+            name : operator["businessInformation"]["companyName"]
+          })
+        }
+
+        setOperators(ops)
+      }
+    })
+    .then(res => console.log(operators))
+    .catch(error=>{
+      console.error(error)
+    })
+
+  } 
+
   return{
     user,
     formData,
@@ -183,7 +216,14 @@ export default function useVehicles(){
     pagination,
     getVehiclesStatus,
     operator,
+    searchValue,
+    operators,
+    show, 
+    setShow, 
+    setOperators,
+    handleSearchOperator,
     setOperator,
+    setSearchValue,
     getVehicles,
     handleSubmit,
     handleInputChange 
