@@ -11,6 +11,8 @@ from pprint import pprint
 import os
 import random
 from werkzeug.utils import secure_filename
+from bson.errors import InvalidId
+
 
 app = Flask(__name__)
 CORS(app)
@@ -176,117 +178,6 @@ def generate_unique_badge_number():
 """
 #### CLIENT ROUTES  ####
 """
-
-@app.route('/api/auth/register', methods=['POST'])
-def register():
-    try:
-        data = request.get_json()
-        
-        required_fields = ['firstName', 'lastName', 'email', 'phone', 'password', 'confirmPassword', 'accountType']
-        for field in required_fields:
-            if not data.get(field):
-                return jsonify({'message': f'Missing required field: {field}'}), 400
-        
-   
-        if users_collection.find_one({'email': data['email']}):
-            return jsonify({'message': 'Email address already registered'}), 409
-
-        if users_collection.find_one({
-            "businessInformation" : {
-                "companyName" : data["companyName"]
-            }
-        }):
-            return jsonify({'message': 'Company name already registered'}), 409 
-        
-        password_hash = hash_password(data['password'])
-        
-        user_doc = {
-            'firstName': data['firstName'],
-            'lastName': data['lastName'],
-            'email': data['email'].lower(),
-            'phone': data['phone'],
-            'password': password_hash,
-            'role': 'admin' if data['accountType'] == 'admin' else 'operator',
-            'businessInformation': {
-                "companyName" : data["companyName"],
-                "businessRegistration" : data["businessRegistration"],
-                "businessAddress" : data["businessAddress"],
-                "contactPerson" : data["contactPerson"]
-            },
-            'createdAt': datetime.now(cat_tz),
-            'updatedAt': datetime.now(cat_tz)
-        }
-        
-        result = users_collection.insert_one(user_doc)
-        user_id = str(result.inserted_id)
-        
-        user = {
-            "_id" : user_id,
-            "email" : user_doc["email"],
-            "firstName" : user_doc.get("firstName"),
-            "lastName" : user_doc.get("lastName"),
-            "companyName": user_doc.get("businessInformation", {}).get("companyName", ""),
-            "role" : user_doc.get("role")
-        }
-
-        token = generate_token(user)
-        if user_id:
-            return {
-                'success': True,
-                'message': 'Account created successfully! Please check your email to verify your account.',
-                "token" : token,
-                'user': user
-            }, 200
-      
-            
-    except Exception as e:
-        pprint(f"Registration error: {str(e)}")
-        return {'message': 'Internal server error'}, 500
-
-@app.route('/api/auth/login', methods=['POST'])
-def login():
-    try:
-        data = request.get_json()
-        email = data.get('email', '').lower()
-        password = data.get('password', '')
-        
-        if not email or not password:
-            return jsonify({'message': 'Email and password are required'}), 400
-        
-        user = users_collection.find_one({'email': email})
-        if not user:
-            return jsonify({'message': 'Invalid credentials'}), 401
-        
-        if not bcrypt.checkpw(password.encode('utf-8'), user['password']):
-            return jsonify({'message': 'Invalid credentials'}), 401
-            
-        token = generate_token(user)
-
-        users_collection.update_one(
-            {'_id': user['_id']},
-            {'$set': {'lastLogin': datetime.now(cat_tz)}}
-        )
-        
-        user_data = {
-            "_id": str(user.get("_id", "")),
-            "email": user.get("email", ""),
-            "firstName": user.get("firstName", ""),
-            "lastName": user.get("lastName", ""),
-            "companyName": user.get("businessInformation", {}).get("companyName", ""),
-            "role": user.get("role", ""),
-        }
-
-        
-        return jsonify({
-            'success': True,
-            'token': token,
-            'user': user_data,
-            'message': 'Login successful'
-        })
-    
-    except Exception as e:
-        print(f"Login error: {str(e)}")
-        return jsonify({'message': 'Internal server error'}), 500
 
 @app.route("/api/client/dashboard", methods = ["GET"])
 @token_required
@@ -516,69 +407,6 @@ def search_application(current_user):
         app.logger.error(f"Search error: {e}")
         return {"success": False, "message": "An error occurred"}, 500
 
-@app.route('/api/vehicles/register', methods=['POST'])
-@token_required
-def register_vehicle(current_user):
-    try:
-        form = request.form
-        files = request.files
-
-        existing_vehicle = vehicles_collection.find_one({
-            'registrationNumber': form['registrationNumber'].upper()
-        })
-        
-        if existing_vehicle:
-            return jsonify({'error': 'Vehicle with this registration number already exists'}), 409
-        
-        vehicle_id = generate_unique_vehicle_id()
-
-        saved_files = {}
-        for key in ['vehicleDocuments', 'insuranceCertificates', 'driversLicenses']:
-            file = files.get(key)
-            if file:
-                file_path = save_file(file)
-                saved_files[key] = "NULL" if not file_path else file_path
-
-        vehicle_doc = {
-            "ownerID" : str(current_user.get('_id')) if  current_user.get("role") == "operator" else form["ownerID"],
-            'vehicleId': vehicle_id,
-            'registrationNumber': form['registrationNumber'].upper(),
-            'make': form['make'],
-            'model': form['model'],
-            'year': int(form['year']),
-            'capacity': int(form['capacity']),
-            'engineNumber': form['engineNumber'],
-            'chassisNumber': form['chassisNumber'],
-            'color': form['color'],
-            'fuelType': form['fuelType'],
-            'insuranceCompany': form['insuranceCompany'],
-            'insurancePolicyNumber': form['insurancePolicyNumber'],
-            'insuranceExpiryDate': form['insuranceExpiryDate'],
-            'roadworthyExpiryDate': form['roadworthyExpiryDate'],
-            'operatingRoute': form['operatingRoute'],
-            'driverName': form['driverName'],
-            'driverLicenseNumber': form['driverLicenseNumber'],
-            'driverLicenseExpiry': form['driverLicenseExpiry'],
-            'status': 'pending_approval',
-            "uploadedFiles" : saved_files,
-            'registrationDate': datetime.now(cat_tz).strftime('%Y-%m-%d'),
-            'createdAt': datetime.now(cat_tz),
-            'updatedAt': datetime.now(cat_tz)
-        }
-
-        result = vehicles_collection.insert_one(vehicle_doc)
-        vehicle_doc['_id'] = str(result.inserted_id)
-        
-        return {
-            'success': True,
-            'vehicleId': vehicle_id,
-            'message': 'Vehicle registered successfully and is pending approval'
-        }, 201
-
-    except Exception as e:
-        print(f"Register vehicle error: {str(e)}")
-        return {'error': 'Internal server error'}, 500
-
 @app.route("/api/vehicles", methods=["GET"])
 @token_required
 def get_client_vehicles(current_user):
@@ -646,41 +474,30 @@ def get_client_vehicles(current_user):
             "message": "An error occurred while fetching vehicles"
         }, 500
 
-@app.route('/api/vehicles/<vehicle_id>', methods=['PUT'])
-def update_vehicle(vehicle_id):
+@app.route("/api/information", methods=["GET"])
+@token_required
+def get_client_information(current_user):
+    id = str(current_user.get("_id"))
+    if not id:
+        return {"message": "Something happened"}, 401
     try:
-        data = request.get_json()
-        
-        # Find existing vehicle
-        vehicle = vehicles_collection.find_one({'vehicleId': vehicle_id})
-        if not vehicle:
-            return jsonify({'error': 'Vehicle not found'}), 404
-        
-        # Update vehicle
-        update_data = {
-            'status': data.get('status', vehicle['status']),
-            'operatingRoute': data.get('operatingRoute', vehicle['operatingRoute']),
-            'driverName': data.get('driverName', vehicle['driverName']),
-            'driverLicenseNumber': data.get('driverLicenseNumber', vehicle['driverLicenseNumber']),
-            'driverLicenseExpiry': data.get('driverLicenseExpiry', vehicle['driverLicenseExpiry']),
-            'insuranceExpiryDate': data.get('insuranceExpiryDate', vehicle['insuranceExpiryDate']),
-            'roadworthyExpiryDate': data.get('roadworthyExpiryDate', vehicle['roadworthyExpiryDate']),
-            'updatedAt': datetime.utcnow()
-        }
-        
-        vehicles_collection.update_one(
-            {'vehicleId': vehicle_id},
-            {'$set': update_data}
-        )
-        
-        return jsonify({
-            'success': True,
-            'message': 'Vehicle updated successfully'
-        })
-    
-    except Exception as e:
-        print(f"Update vehicle error: {str(e)}")
-        return jsonify({'error': 'Internal server error'}), 500
+        user = users_collection.find_one({"_id": ObjectId(id)})
+        if user:
+            return {
+                "user": user.get("businessInformation", {}),
+                "success": True
+            }, 200
+
+        return {
+            "success": False,
+            "message": "No user found"
+        }, 401
+    except Exception as error:
+        app.logger.error(f"{error}")
+        return {
+            "success": False,
+            "message": "An internal error occurred"
+        }, 500  
 
 """ 
 #### ADMIN ROUTES 
@@ -717,13 +534,11 @@ def get_admin_dashboard(admin):
 @admin_required
 def get_operators(admin):
     try:
-        # Get query parameters
         status = request.args.get('status')
         search = request.args.get('search')
         page = int(request.args.get('page', 1))
-        limit = int(request.args.get('limit', 50))
-        
-        # Build query
+        limit = 10
+         
         query = {
             'role': {'$ne': 'admin'},
         }
@@ -733,46 +548,119 @@ def get_operators(admin):
         if search:
             search_regex = {'$regex': search, '$options': 'i'}
             query['$or'] = [
-                {'operatorName': search_regex},
-                {'contactPerson': search_regex},
+                {'firstName': search_regex},
+                {'lastName': search_regex},
+                {'businessInformation.contactPerson': search_regex},
+                {'businessInformation.companyName': search_regex},
                 {'email': search_regex}
             ]
         
-        # Get operators with pagination
         skip = (page - 1) * limit
-        operators = list(users_collection.find(query).skip(skip).limit(limit).sort('operatorName', 1))
+        operators = list(users_collection.find(query).skip(skip).limit(limit).sort('createdAt', 1))
         total = users_collection.count_documents(query)
         
-        # Add statistics for each operator
         for operator in operators:
-            operator['_id'] = str(operator['_id'])
-            
-            # Count active permits
+            operator["_id"] = str(operator.get("_id", ""))
+    
             operator['activePermits'] = applications_collection.count_documents({
-                'operatorName': operator['operatorName'],
+                'firstName': operator.get('firstName', ''),
+                'lastName': operator.get('lastName', ''),
                 'status': 'approved'
             })
-            
-            # Count vehicles
+
             operator['vehicles'] = vehicles_collection.count_documents({
-                'operatorName': operator['operatorName']
+                'ownerID': operator["_id"]
             })
+
+            operator.pop("password", None)
         
-        return jsonify({
+        total_pages = (total + limit - 1) // limit if total > 0 else 1
+        pagination = {
+            "current_page": page,
+            "total_pages": total_pages,
+            "total_items": total,
+            "has_previous": page > 1,
+            "has_next": page < total_pages,
+            "previous_page": page - 1 if page > 1 else None,
+            "next_page": page + 1 if page < total_pages else None,
+        }
+
+        return {
             'success': True,
             'operators': operators,
-            'total': total,
-            'page': page,
-            'pages': (total + limit - 1) // limit
-        })
+            "pagination": pagination
+        }, 200
     
     except Exception as e:
-        print(f"Get operators error: {str(e)}")
+        app.logger.error(f"{e}")
         return jsonify({'error': 'Internal server error'}), 500
 
+@app.route('/api/admin/operators/<operator_id>', methods=['PUT'])
+@token_required
+@admin_required
+def update_operator(admin, operator_id):
+    try:
+        data = request.json
+        if not data:
+            return jsonify({"error": "No update data provided"}), 400
+
+        update_fields = {}
+
+        if "businessInformation" in data:
+            for key, value in data["businessInformation"].items():
+                update_fields[f"businessInformation.{key}"] = value
+
+        for field in ["email", "phone", "status", "firstName", "lastName"]:
+            if field in data:
+                update_fields[field] = data[field]
+
+        if not update_fields:
+            return jsonify({"error": "No valid fields to update"}), 400
+
+        result = users_collection.update_one(
+            {"_id": ObjectId(operator_id), "role": {"$ne": "admin"}},
+            {"$set": update_fields}
+        )
+
+        if result.matched_count == 0:
+            return jsonify({"error": "Operator not found"}), 404
+
+        updated_operator = users_collection.find_one({"_id": ObjectId(operator_id)})
+        updated_operator["_id"] = str(updated_operator["_id"])
+        updated_operator.pop("password", None)
+
+        return jsonify({
+            "success": True,
+            "message": "Operator updated successfully",
+            "operator": updated_operator
+        }), 200
+
+    except Exception as e:
+        app.logger.error(f"Update operator error: {e}")
+        return jsonify({"error": "Internal server error"}), 500
+
+@app.route("/api/operators/<operator_id>", methods=["DELETE"])
+@token_required
+@admin_required
+def delete_operator(admin, operator_id):
+    try:
+        operator = users_collection.find_one({"_id": ObjectId(operator_id)})
+        if not operator:
+            return jsonify({"error": "Operator not found"}), 404
+
+        applications_collection.delete_many({"operatorId": operator_id})
+        vehicles_collection.delete_many({"ownerID": operator_id})
+
+        result = users_collection.delete_one({"_id": ObjectId(operator_id)})
+        if result.deleted_count == 0:
+            return jsonify({"error": "Operator not deleted"}), 400
+
+        return jsonify({"message": "Operator deleted successfully"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route("/api/admin/create", methods = ["POST"])
-def create_admin(admin):
+def create_admin():
     data = request.get_json()
     firstName = data.get("firstName", None)
     email = data.get("email", None)
@@ -808,9 +696,9 @@ def create_admin(admin):
             }, 200
         
     except Exception as e:
-        app.logger.error("Error creating admin: " + e)
+        app.logger.error(f"Error creating admin: {e}")
         return {
-            "message" : "An error occured"
+            "message" : "An error occurred"
         }, 500
     
 @app.route('/api/admin/vehicles', methods=['GET'])
@@ -819,23 +707,24 @@ def create_admin(admin):
 def get_vehicles(admin):
     try:
         status = request.args.get('status')
-        operator = request.args.get('operator')
-        route = request.args.get('route')
+        search = request.args.get("search", None)
         page = int(request.args.get('page', 1))
         limit = int(request.args.get('limit', 10))
         
         query = {}
         if status and status != 'default':
             query['status'] = status
-        
-        if operator:
-            query['operatorName'] = {'$regex': operator, '$options': 'i'}
-        
-        if route:
-            query['operatingRoute'] = {'$regex': route, '$options': 'i'}
-        
+
+        if search:
+            search_regex = {'$regex': search, '$options': 'i'}
+            query['$or'] = [
+                {'vehicleId': search_regex},
+                {'registrationNumber': search_regex},
+                {'make': search_regex},
+                {'model': search_regex}
+            ]
         skip = (page - 1) * limit
-        vehicles = list(vehicles_collection.find(query).skip(skip).limit(limit).sort('registrationNumber', 1))
+        vehicles = list(vehicles_collection.find(query).skip(skip).limit(limit).sort('createdAt', 1))
         total = vehicles_collection.count_documents(query)
         
         total_pages = (total + limit - 1) // limit if total > 0 else 1
@@ -847,6 +736,7 @@ def get_vehicles(admin):
                 "operatorName" : operator["businessInformation"]["companyName"],
                 "id" : str(vehicle.get("_id")),
                 "registrationNumber" : vehicle.get("registrationNumber"),
+                "make" : vehicle.get("make"),
                 "model" : vehicle.get("model"),
                 "status" : vehicle.get("status"),
                 "registrationDate" :str(vehicle.get("createdAt")),
@@ -877,27 +767,95 @@ def get_vehicles(admin):
         app.logger.error(f"Get vehicles error: {str(e)}")
         return jsonify({'error': 'Internal server error'}), 500
 
-@app.route('/api/admin/vehicles/<vehicle_id>', methods=['DELETE'])
+@app.route("/api/admin/vehicle/<vehicle_id>", methods = ["GET"])
 @token_required
 @admin_required
-def delete_vehicle(admin,vehicle_id):
+def get_vehicle(admin, vehicle_id):
     try:
-        vehicle = vehicles_collection.find_one({'vehicleId': vehicle_id})
+        vehicle = vehicles_collection.find_one({"_id": ObjectId(vehicle_id)})
+    except InvalidId:
+        return {
+            "success": False,
+            "message": "Invalid vehicle ID"
+        }, 400 
+    
+    if not vehicle:
+        return {
+            "success": False,
+            "message": "Vehicle not found"
+        }, 404 
+    
+    vehicle = serialize_application(vehicle)
+    return {
+        "success": True,
+        "vehicle": vehicle
+    }, 200
+
+@app.route('/api/admin/update/<vehicle_id>', methods=['PUT'])
+@token_required
+@admin_required
+def update_vehicle(admin, vehicle_id):
+    try:
+        data = request.get_json()
+        vehicle = vehicles_collection.find_one({'_id': ObjectId(vehicle_id)})
         if not vehicle:
             return jsonify({'error': 'Vehicle not found'}), 404
         
+        update_data = {
+            'status': data.get('status', vehicle['status']),
+            'operatingRoute': data.get('operatingRoute', vehicle['operatingRoute']),
+            'driverName': data.get('driverName', vehicle['driverName']),
+            'driverLicenseNumber': data.get('driverLicenseNumber', vehicle['driverLicenseNumber']),
+            'driverLicenseExpiry': data.get('driverLicenseExpiry', vehicle['driverLicenseExpiry']),
+            'insuranceExpiryDate': data.get('insuranceExpiryDate', vehicle['insuranceExpiryDate']),
+            'roadworthyExpiryDate': data.get('roadworthyExpiryDate', vehicle['roadworthyExpiryDate']),
+            'updatedAt': datetime.now(cat_tz)
+        }
+        
+        vehicles_collection.update_one(
+            {'_id': ObjectId(vehicle_id)},
+            {'$set': update_data}
+        )
+        
+        return {
+            'success': True,
+            'message': 'Vehicle updated successfully'
+        }
+    
+    except Exception as e:
+        app.logger.error(f"{e}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+@app.route('/api/admin/vehicles/<vehicle_id>', methods=['DELETE'])
+@token_required
+@admin_required
+def delete_vehicle(admin, vehicle_id):
+    try:
+        vehicle = vehicles_collection.find_one({'_id': ObjectId(vehicle_id)})
+        if not vehicle:
+            return jsonify({'error': 'Vehicle not found'}), 404
+
         if vehicle['status'] == 'active':
             return jsonify({
                 'error': 'Cannot delete active vehicle. Please change status first.'
             }), 400
-        
-        result = vehicles_collection.delete_one({'vehicleId': vehicle_id})
-        
+
+        uploaded_files = vehicle.get('uploadedFiles', {})
+        for key, file_path in uploaded_files.items():
+            full_path = os.path.join(app.root_path, file_path)
+            if os.path.exists(full_path):
+                try:
+                    os.remove(full_path)
+                except Exception as e:
+                    print(f"Failed to delete file {full_path}: {e}")
+
+        vehicles_collection.delete_one({'_id': ObjectId(vehicle_id)})
+
         return jsonify({
             'success': True,
-            'message': 'Vehicle deleted successfully'
+            'message': 'Vehicle and associated files deleted successfully'
         })
-    
+
     except Exception as e:
         print(f"Delete vehicle error: {str(e)}")
         return jsonify({'error': 'Internal server error'}), 500
@@ -955,7 +913,6 @@ def get_all_applications(admin):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-
 @app.route('/api/admin/s/applications', methods=['GET'])
 @token_required
 @admin_required
@@ -990,7 +947,7 @@ def search_admin_application(admin):
         return jsonify(results), 200
 
     except Exception as e:
-        app.logger.error(f"An error occured searching for application: {e}")
+        app.logger.error(f"An error occurred searching for application: {e}")
         return jsonify({"error": f"Error searching application: {str(e)}"}), 500
 
 @app.route('/api/admin/application/<application_id>/status', methods=['PUT'])
@@ -1086,16 +1043,132 @@ def create_officer(admin):
             }, 200
         
     except Exception as e:
-        app.logger.error("An error occured creating officer: " + e)
+        app.logger.error("An error occurred creating officer: " + e)
         return {
-            "message" : "An error occured creating officer"
+            "message" : "An error occurred creating officer"
         }, 500
 
 @app.route("/api/admin/officers", methods = ["GET"])
 @token_required
 @admin_required
 def get_officers(admin):
-    pass
+    try:
+        status = request.args.get('status')
+        search = request.args.get('search')
+        page = int(request.args.get('page', 1))
+        limit = 10
+         
+        query = {}
+        if status and status != 'default':
+            query['status'] = status
+        
+        if search:
+            search_regex = {'$regex': search, '$options': 'i'}
+            query['$or'] = [
+                {'firstName': search_regex},
+                {'lastName': search_regex},
+                {'badgeNumber': search_regex}
+            ]
+        
+        skip = (page - 1) * limit
+        officers = list(officers_collection.find(query).skip(skip).limit(limit).sort('createdAt', 1))
+        total = officers_collection.count_documents(query)
+        
+        for officer in officers:
+            officer["_id"] = str(officer.get("_id", ""))    
+            officer.pop("password", None)
+            officer.pop("updatedAt")
+
+        total_pages = (total + limit - 1) // limit if total > 0 else 1
+        pagination = {
+            "current_page": page,
+            "total_pages": total_pages,
+            "total_items": total,
+            "has_previous": page > 1,
+            "has_next": page < total_pages,
+            "previous_page": page - 1 if page > 1 else None,
+            "next_page": page + 1 if page < total_pages else None,
+        }
+
+        return {
+            'success': True,
+            'officers': officers,
+            "pagination": pagination
+        }, 200
+    
+    except Exception as e:
+        app.logger.error(f"{e}")
+        return jsonify({'error': 'Internal server error'}), 500
+    
+@app.route("/api/admin/officers/<officer_id>", methods=["PATCH"])
+@token_required
+@admin_required
+def update_officer(admin, officer_id):
+    try:
+        data = request.get_json()
+        
+        allowed_fields = [
+            "firstName", 
+            "lastName", 
+            "email", 
+            "phoneNumber", 
+            "rank", 
+            "department", 
+            "status"
+        ]
+        
+        update_data = {field: data[field] for field in allowed_fields if field in data}
+        
+        if not update_data:
+            return jsonify({"message": "No valid fields to update"}), 400
+        
+        update_data["updatedAt"] = datetime.now(cat_tz)
+
+        result = officers_collection.update_one(
+            {"_id": ObjectId(officer_id)},
+            {"$set": update_data}
+        )
+
+        if result.matched_count == 0:
+            return jsonify({"message": "Officer not found"}), 404
+
+        updated_officer = officers_collection.find_one({"_id": ObjectId(officer_id)})
+        updated_officer["_id"] = str(updated_officer["_id"])
+        updated_officer["createdAt"] = updated_officer["createdAt"].isoformat()
+        updated_officer["updatedAt"] = updated_officer["updatedAt"].isoformat()
+        updated_officer.pop("password", None)
+
+        return {
+            "success": True,
+            "message": "Officer updated successfully",
+            "officer": updated_officer
+        }, 200
+
+    except Exception as e:
+        app.logger.error(f"Error updating officer: {str(e)}")
+        return {"message": "Internal server error"}, 500
+
+@app.route('/api/officers/<identifier>', methods=['DELETE'])
+@token_required
+@admin_required
+def delete_officer(admin, identifier):
+    try:
+        result = None
+
+        try:
+            result = officers_collection.delete_one({"_id": ObjectId(identifier)})
+        except Exception:
+            result = None
+        if not result or result.deleted_count == 0:
+            result = officers_collection.delete_one({"badgeNumber": identifier})
+
+        if result.deleted_count == 0:
+            return jsonify({"error": "Officer not found"}), 404
+
+        return jsonify({"message": "Officer deleted successfully"}), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/api/admin/application/<application_id>', methods = ['PUT'])
 @token_required
@@ -1131,24 +1204,34 @@ def edit_application(admin, application_id):
         return jsonify({"message": "Application updated successfully"}), 200
 
     except Exception as e:
-        app.logger.error1(f"An Error occured: {e}")
+        app.logger.error1(f"An Error occurred: {e}")
         return jsonify({"error": f"Error editing application: {str(e)}"}), 500
 
-@app.route('/api/applications/<application_id>', methods=['DELETE'])
+@app.route('/api/admin/applications/<application_id>', methods = ['DELETE'])
 @token_required
 @admin_required
 def delete_application(admin, application_id):
     try:
-        result = applications_collection.delete_one({"applicationId": application_id})
-
-        if result.deleted_count == 0:
+        application = applications_collection.find_one({"applicationId": application_id})
+        if not application:
             return jsonify({"error": "Application not found"}), 404
 
-        return jsonify({"message": "Application deleted successfully"}), 200
+        uploaded_files = application.get("uploadedFiles", {})
+        for key, file_path in uploaded_files.items():
+            full_path = os.path.join(app.root_path, file_path)
+            if os.path.exists(full_path):
+                try:
+                    os.remove(full_path)
+                except Exception as e:
+                    print(f"Failed to delete file {full_path}: {e}")
+
+        result = applications_collection.delete_one({"applicationId": application_id})
+
+        return jsonify({"message": "Application and associated files deleted successfully"}), 200
 
     except Exception as e:
         return jsonify({"error": f"Error deleting application: {str(e)}"}), 500
-
+    
 @app.route("/api/admin/s/operator", methods = ["GET"])
 @token_required
 @admin_required
@@ -1182,12 +1265,94 @@ def get_operator(admin):
             "results" : results
         }
     except Exception as e:
-        app.logger.error(f"Error occured fetching operators : {e}")
+        app.logger.error(f"Error occurred fetching operators : {e}")
         return {
-            "message" : "Error occured"
+            "message" : "Error occurred"
+        }, 500
+
+@app.route('/api/admin/violations/<violation_id>/pay', methods=['PATCH'])
+@token_required
+@admin_required
+def mark_violation_paid(admin, violation_id):
+    try:
+        violation = violations_collection.find_one({"_id": ObjectId(violation_id)})
+        
+        if not violation:
+            return jsonify({"error": "Violation not found"}), 404
+
+        if violation.get("status") == "paid":
+            return jsonify({"message": "Violation already marked as paid"}), 200
+
+        result = violations_collection.update_one(
+            {"_id": ObjectId(violation_id)},
+            {"$set": {"status": "paid"}}
+        )
+
+        if result.modified_count == 0:
+            return jsonify({"error": "Failed to update violation"}), 500
+
+        return jsonify({
+            "message": "Violation marked as paid successfully",
+            "violationId": violation_id,
+            "status": "paid"
+        }), 200
+
+    except Exception as e:
+        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
+    
+@app.route('/api/admin/violations', methods=['GET'])
+@token_required
+@admin_required
+def get_violations(admin):
+    try:
+        page = int(request.args.get("page", 1))
+        limit = int(request.args.get("limit", 10))
+        skip = (page - 1) * limit
+
+        total = violations_collection.count_documents({})
+        violations_cursor = violations_collection.find().sort("date", -1).skip(skip).limit(limit)
+
+        violations = []
+        for v in violations_cursor:
+            officer = officers_collection.find_one({"_id": ObjectId(v.get("officer_id"))})
+            vehicle_owner = ""
+
+            vehicle = vehicles_collection.find_one({"_id": ObjectId(v.get("vehicle_id"))})
+            if vehicle:
+                owner = users_collection.find_one({"_id": ObjectId(vehicle.get("ownerID"))})
+                if owner:
+                    vehicle_owner = f"{owner.get('firstName', '')} {owner.get('lastName', '')}".strip()
+
+            violations.append({
+                "_id": str(v["_id"]),
+                "vehicle_owner": vehicle_owner,
+                "officer_name": f"{officer.get('firstName', '')} {officer.get('lastName', '')}" if officer else "N/A",
+                "violation": v.get("violation"),
+                "fine": v.get("fine"),
+                "date": v.get("date"),
+                "status": v.get("status", "unpaid")
+            })
+
+        total_pages = (total + limit - 1) // limit if total > 0 else 1
+        pagination = {
+            "current_page": page,
+            "total_pages": total_pages,
+            "total_items": total,
+            "has_previous": page > 1,
+            "has_next": page < total_pages,
+            "previous_page": page - 1 if page > 1 else None,
+            "next_page": page + 1 if page < total_pages else None,
         }
 
+        return jsonify({
+            "violations": violations,
+            "success": True,
+            "pagination": pagination
+        }), 200
 
+    except Exception as e:
+        app.logger.error(f"Error fetching violations: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 
 
 """
@@ -1240,7 +1405,7 @@ def officer_login():
     except Exception as e:
         return {
             "success" : False,
-            "message" : "An error occured"
+            "message" : "An error occurred"
         }, 500
 
 @app.route("/api/officer/search", methods=["GET"])
@@ -1357,6 +1522,179 @@ def download_file():
         app.logger.error(f"Error downloading file: {str(e)}")
         return jsonify({'error': 'Internal server error'}), 500
 
+@app.route('/api/vehicles/register', methods=['POST'])
+@token_required
+def register_vehicle(current_user):
+    try:
+        form = request.form
+        files = request.files
+
+        existing_vehicle = vehicles_collection.find_one({
+            'registrationNumber': form['registrationNumber'].upper()
+        })
+        
+        if existing_vehicle:
+            return jsonify({'error': 'Vehicle with this registration number already exists'}), 409
+        
+        vehicle_id = generate_unique_vehicle_id()
+
+        saved_files = {}
+        for key in ['vehicleDocuments', 'insuranceCertificates', 'driversLicenses']:
+            file = files.get(key)
+            if file:
+                file_path = save_file(file)
+                saved_files[key] = "NULL" if not file_path else file_path
+
+        vehicle_doc = {
+            "ownerID" : str(current_user.get('_id')) if  current_user.get("role") == "operator" else form["ownerID"],
+            'vehicleId': vehicle_id,
+            'registrationNumber': form['registrationNumber'].upper(),
+            'make': form['make'],
+            'model': form['model'],
+            'year': int(form['year']),
+            'capacity': int(form['capacity']),
+            'engineNumber': form['engineNumber'],
+            'chassisNumber': form['chassisNumber'],
+            'color': form['color'],
+            'fuelType': form['fuelType'],
+            'insuranceCompany': form['insuranceCompany'],
+            'insurancePolicyNumber': form['insurancePolicyNumber'],
+            'insuranceExpiryDate': form['insuranceExpiryDate'],
+            'roadworthyExpiryDate': form['roadworthyExpiryDate'],
+            'operatingRoute': form['operatingRoute'],
+            'driverName': form['driverName'],
+            'driverLicenseNumber': form['driverLicenseNumber'],
+            'driverLicenseExpiry': form['driverLicenseExpiry'],
+            'status': 'under_review',
+            "uploadedFiles" : saved_files,
+            'registrationDate': datetime.now(cat_tz).strftime('%Y-%m-%d'),
+            'createdAt': datetime.now(cat_tz),
+            'updatedAt': datetime.now(cat_tz)
+        }
+
+        result = vehicles_collection.insert_one(vehicle_doc)
+        vehicle_doc['_id'] = str(result.inserted_id)
+        
+        return {
+            'success': True,
+            'vehicleId': vehicle_id,
+            'message': 'Vehicle registered successfully and is pending approval'
+        }, 201
+
+    except Exception as e:
+        print(f"Register vehicle error: {str(e)}")
+        return {'error': 'Internal server error'}, 500
+    
+@app.route('/api/auth/register', methods=['POST'])
+def register():
+    try:
+        data = request.get_json()
+        mode = request.args.get("mode", None)
+        
+        required_fields = ['firstName', 'lastName', 'email', 'phone', 'password', 'accountType']
+        for field in required_fields:
+            if not data.get(field):
+                return jsonify({'message': f'Missing required field: {field}'}), 400
+        
+   
+        if users_collection.find_one({'email': data['email']}):
+            return jsonify({'message': 'Email address already registered'}), 409
+
+        if users_collection.find_one({
+            "businessInformation" : {
+                "companyName" : data["companyName"]
+            }
+        }):
+            return jsonify({'message': 'Company name already registered'}), 409 
+        
+        password_hash = hash_password(data['password'])
+        
+        user_doc = {
+            'firstName': data['firstName'],
+            'lastName': data['lastName'],
+            'email': data['email'].lower(),
+            'phone': data['phone'],
+            'password': password_hash,
+            'role': 'admin' if data['accountType'] == 'admin' else 'operator',
+            'businessInformation': {
+                "companyName" : data["companyName"],
+                "businessRegistration" : data["businessRegistration"],
+                "businessAddress" : data["businessAddress"],
+                "contactPerson" : data.get("contactPerson", "")
+            },
+            "status" : "active",
+            'createdAt': datetime.now(cat_tz),
+            'updatedAt': datetime.now(cat_tz)
+        }
+        
+        result = users_collection.insert_one(user_doc)
+        user_id = str(result.inserted_id)
+        
+        user = {
+            "_id" : user_id,
+            "email" : user_doc["email"],
+            "firstName" : user_doc.get("firstName"),
+            "lastName" : user_doc.get("lastName"),
+            "role" : user_doc.get("role")
+        }
+
+        token = generate_token(user)
+        if user_id:
+            return {
+                'success': True,
+                'message': 'Account created successfully! Please check your email to verify your account.',
+                "token" : token,
+                'user': user
+            }, 200
+      
+            
+    except Exception as e:
+        pprint(f"Registration error: {str(e)}")
+        return {'message': 'Internal server error'}, 500
+
+@app.route('/api/auth/login', methods=['POST'])
+def login():
+    try:
+        data = request.get_json()
+        email = data.get('email', '').lower()
+        password = data.get('password', '')
+        
+        if not email or not password:
+            return jsonify({'message': 'Email and password are required'}), 400
+        
+        user = users_collection.find_one({'email': email})
+        if not user:
+            return jsonify({'message': 'Invalid credentials'}), 401
+        
+        if not bcrypt.checkpw(password.encode('utf-8'), user['password']):
+            return jsonify({'message': 'Invalid credentials'}), 401
+            
+        token = generate_token(user)
+
+        users_collection.update_one(
+            {'_id': user['_id']},
+            {'$set': {'lastLogin': datetime.now(cat_tz)}}
+        )
+        
+        user_data = {
+            "_id": str(user.get("_id", "")),
+            "email": user.get("email", ""),
+            "firstName": user.get("firstName", ""),
+            "lastName": user.get("lastName", ""),
+            "role": user.get("role", ""),
+        }
+
+        
+        return jsonify({
+            'success': True,
+            'token': token,
+            'user': user_data,
+            'message': 'Login successful'
+        })
+    
+    except Exception as e:
+        print(f"Login error: {str(e)}")
+        return jsonify({'message': 'Internal server error'}), 500
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
