@@ -50,7 +50,7 @@ export default function AdminDashboardPage() {
               </div>
               <div>
                 <h1 className="text-xl font-bold text-gray-900">Admin Dashboard</h1>
-                <p className="text-sm text-gray-600">Harare City Council - Permit Management</p>
+                <p className="text-sm text-gray-600">Harare City Council - Permit Administration</p>
               </div>
             </div>
             <div className="flex items-center space-x-4">

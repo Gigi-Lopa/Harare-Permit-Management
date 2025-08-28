@@ -6,7 +6,7 @@ import { Toaster } from "@/components/ui/toaster"
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Harare Permit Management',
+  title: 'Harare Permit Administration',
 }
 
 export default function RootLayout({

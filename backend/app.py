@@ -26,7 +26,7 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
 # MongoDB connection
 client = MongoClient("mongodb://localhost:27017/")
-db = client.permit_management
+db = client.permit_administration
 
 # Collections
 users_collection = db.users

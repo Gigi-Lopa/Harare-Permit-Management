@@ -1,24 +1,22 @@
-import React from 'react'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from "@/components/ui/card"
-import { TabsContent } from "@/components/ui/tabs"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Badge } from '@/components/ui/badge'
+import { TabsContent } from "@/components/ui/tabs"
 import {
     ChevronLeft,
-  ChevronRight,
-  Search
+    ChevronRight,
+    Search
 } from "lucide-react"
 
 import AddOperatorDialog from '@/components/general/AddOperatorDialog'
-import ViewOperatorDialog from '@/components/general/ViewOperatorDialog'
-import UpdateOperatorDialog from '@/components/general/UpdateOperatorDialog'
 import DeleteOperatorDialog from '@/components/general/DeleteOperatorDialog'
-import useOperators from '@/hooks/useOperators'
 import EmptyScreen from '@/components/general/EmptyScreen'
-
+import UpdateOperatorDialog from '@/components/general/UpdateOperatorDialog'
+import ViewOperatorDialog from '@/components/general/ViewOperatorDialog'
+import useOperators from '@/hooks/useOperators'
 
 function Operators() {
     const {
