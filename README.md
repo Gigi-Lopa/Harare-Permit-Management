@@ -13,13 +13,13 @@ A comprehensive solution for managing permits in Harare. This project streamline
 
 ## Technologies Used
 
-- [List your main tech stack here, e.g., React + Next, flask, MongoDB]
+- React + Next, flask, MongoDB
 
 ## Getting Started
 
 ### Prerequisites
 
-- [List any required software, e.g., Node.js, Python, Mongodb Server.]
+- Node.js, Python, Mongodb Server
 
 ### Installation
 
