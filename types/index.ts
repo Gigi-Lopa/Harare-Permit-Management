@@ -163,6 +163,7 @@ export interface Officer {
 }
 export interface Violation {
   _id: string
+  plate : string
   vehicle_owner: string
   officer_name: string
   violation: string

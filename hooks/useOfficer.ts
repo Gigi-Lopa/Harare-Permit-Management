@@ -106,6 +106,7 @@ export default function useOfficer(){
         loading,
         error,
         searchHistory,
+        setError,
         handleSearch,
         AddViolation,
         handleLogout,

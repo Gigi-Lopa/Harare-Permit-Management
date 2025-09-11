@@ -28,6 +28,7 @@ export default function OfficerDashboardPage() {
         loading,
         error,
         searchHistory,
+        setError,
         handleSearch,
         AddViolation,
         handleLogout,
@@ -104,10 +105,25 @@ export default function OfficerDashboardPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 {error && (
-                  <Alert variant="destructive">
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertDescription>{error}</AlertDescription>
-                  </Alert>
+                  <div>
+                    <Alert variant="destructive">
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertDescription>{error}</AlertDescription>
+                    </Alert>
+                    <div className="flex items-center justify-center mt-5">
+                      <AddViolationDialog
+                        user = {user}
+                        vehicleId={"UNKNOWN"}
+                        onViolationAdded={(v:any, isUnknown: boolean) => {
+                          if (isUnknown) {
+                            alert("Violation successfully ended")
+                            return setError("")
+                          };
+                          AddViolation(v)
+                        }}
+                      />
+                    </div>
+                  </div>
                 )}
 
                 <div className="flex space-x-4">
@@ -144,11 +160,14 @@ export default function OfficerDashboardPage() {
                 </CardHeader>
                 <CardContent>
                   {vehicleInfo.status === "not_found" ? (
-                    <div className="text-center py-8">
-                      <XCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">Vehicle Not Found</h3>
-                      <p className="text-gray-600">No vehicle found with license plate {vehicleInfo.licensePlate}</p>
+                    <div>
+                        <div className="text-center py-8">
+                          <XCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                          <h3 className="text-lg font-medium text-gray-900 mb-2">Vehicle Not Found</h3>
+                          <p className="text-gray-600">No vehicle found with license plate {vehicleInfo.licensePlate}</p>
+                        </div>
                     </div>
+                    
                   ) : (
                     <div className="space-y-6">
                       <div>
