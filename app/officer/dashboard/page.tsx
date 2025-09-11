@@ -22,16 +22,17 @@ import { AddViolationDialog } from "@/components/general/AddViolation"
 import useOfficer from "@/hooks/useOfficer"
 
 export default function OfficerDashboardPage() {
-  const { user,
-        searchPlate,
-        vehicleInfo,
-        loading,
-        error,
-        searchHistory,
-        handleSearch,
-        AddViolation,
-        handleLogout,
-        setSearchPlate} = useOfficer();
+  const { 
+    user,
+    searchPlate,
+    vehicleInfo,
+    loading,
+    error,
+    searchHistory,
+    handleSearch,
+    AddViolation,
+    handleLogout,
+    setSearchPlate} = useOfficer();
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
