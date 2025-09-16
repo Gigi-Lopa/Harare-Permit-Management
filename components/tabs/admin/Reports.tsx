@@ -35,6 +35,11 @@ function Reports() {
                 <CardHeader>
                   <h6 className="text-md">{v.violation}</h6>
                   <CardDescription className="space-y-1 flex flex-col">
+                    {
+                      v.plate.length !== 0 &&
+                    <span>License Plate: {v.plate}</span>
+
+                    }
                     <span>Fine: ${v.fine}</span>
                     <span>Date: {v.date}</span> 
                     <span>Vehicle Owner : {v.vehicle_owner}</span>

@@ -14,7 +14,6 @@ import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert"
 import useApplication from "@/hooks/useApplications"
 import { useEffect } from "react"
 import useGetUserInfor from "@/hooks/useGetUserInfor"
-import { LocalUser } from "@/types"
 import { useRouter } from "next/navigation"
 export default function NewApplicationPage() {
   const {    
@@ -253,6 +252,7 @@ export default function NewApplicationPage() {
                 <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
                   <Upload className="h-8 w-8 mx-auto text-gray-400 mb-2" />
                   <p className="text-sm font-medium">Business Registration Certificate</p>
+                  <p className="text-xs text-gray-500 mb-2">{formData.businessRegistrationCertificate?.name}</p>
                   <Button
                     variant="outline"
                     size="sm"
@@ -267,6 +267,7 @@ export default function NewApplicationPage() {
                 <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
                   <Upload className="h-8 w-8 mx-auto text-gray-400 mb-2" />
                   <p className="text-sm font-medium">Vehicle Registration Documents</p>
+                  <p className="text-xs text-gray-500 mb-2">{formData.vehicleDocuments?.name}</p>
                   <Button
                     variant="outline"
                     size="sm"
@@ -282,6 +283,8 @@ export default function NewApplicationPage() {
                   <Upload className="h-8 w-8 mx-auto text-gray-400 mb-2" />
                   <p className="text-sm font-medium">Insurance Certificates</p>
                   <p className="text-xs text-gray-500 mb-2">PDF, JPG, PNG (Max 5MB)</p>
+                  <p className="text-xs text-gray-500 mb-2">{formData.insuranceCertificates?.name}</p>
+
                   <Button variant="outline" size="sm"
                     type="button"
                     onClick={() => insuranceCertificatesRef.current?.click()}
@@ -295,6 +298,7 @@ export default function NewApplicationPage() {
                   <Upload className="h-8 w-8 mx-auto text-gray-400 mb-2" />
                   <p className="text-sm font-medium">Driver's Licenses</p>
                   <p className="text-xs text-gray-500 mb-2">PDF, JPG, PNG (Max 5MB)</p>
+                  <p className="text-xs text-gray-500 mb-2">{formData.driversLicenses?.name}</p>
                   <Button variant="outline" size="sm"
                     type="button"
                     onClick={() => driversLicensesRef.current?.click()}

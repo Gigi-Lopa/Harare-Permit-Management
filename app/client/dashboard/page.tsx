@@ -11,6 +11,8 @@ import Vehicles from "@/components/tabs/client/Vehicles"
 import Profile from "@/components/tabs/client/Profile"
 import TrackApplication from "@/components/general/ClientTrackApplication"
 import useTrackApplication from "@/hooks/useTrackApplication"
+import Logo from "@/styles/imgs/logo.png"
+import Image from "next/image"
 
 export default function ClientDashboardPage() {
   const {  
@@ -65,8 +67,8 @@ export default function ClientDashboardPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-3">
-              <div className="bg-blue-600 p-2 rounded-lg">
-                <Bus className="h-6 w-6 text-white" />
+              <div className="rounded-lg">
+                <Image src={Logo} alt="logo" className="w-auto h-[35px] rounded-md"/>
               </div>
               <div>
                 <h1 className="text-xl font-bold text-gray-900">Operator Dashboard</h1>

@@ -163,6 +163,7 @@ export interface Officer {
 }
 export interface Violation {
   _id: string
+  plate : string
   vehicle_owner: string
   officer_name: string
   violation: string
@@ -170,3 +171,22 @@ export interface Violation {
   date: string
   status: "paid" | "unpaid"
 }
+export type OperatorFormData = {
+  operatorName: string
+  contactPerson: string
+  email: string
+  phone: string
+  address: string
+  businessRegistration: string
+  routeFrom: string
+  routeTo: string
+  vehicleCount: string
+  operatingHours: string
+  description: string
+  agreedToTerms: boolean
+  businessRegistrationCertificate: File | null
+  vehicleDocuments: File | null
+  insuranceCertificates: File | null
+  driversLicenses: File | null
+}
+

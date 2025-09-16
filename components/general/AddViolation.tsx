@@ -10,14 +10,15 @@ import { LocalUser } from "@/types"
 interface AddViolationDialogProps {
   vehicleId: string;
   user : LocalUser,
-  onViolationAdded: (violation: any) => void
+  onViolationAdded: (violation: any, isUnknown: boolean) => void
 }
 
 export function AddViolationDialog({ user, vehicleId, onViolationAdded }: AddViolationDialogProps) {
   const [open, setOpen] = useState(false)
   const [formData, setFormData] = useState({
     violation: "",
-    fine: ""
+    fine: "",
+    plate : ""
   })
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -45,10 +46,10 @@ const handleSubmit = async (e: React.FormEvent) => {
     const data = await res.json()
     const violation = data.violation
 
-    onViolationAdded(violation)
+    onViolationAdded(violation, vehicleId === "UNKNOWN")
     toast.success("Violation added successfully")
     setOpen(false)
-    setFormData({ violation: "", fine: "" })
+    setFormData({ violation: "", fine: "" , plate : ""})
   } catch (err) {
     console.error(err)
     toast.error("Failed to add violation")
@@ -65,6 +66,20 @@ const handleSubmit = async (e: React.FormEvent) => {
           <DialogTitle>Add Violation</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {
+            vehicleId === "UNKNOWN" && 
+            <div>
+              <Label htmlFor="violation">license Plate</Label>
+              <Input
+                id="plate"
+                name="plate"
+                value={formData.plate}
+                onChange={handleChange}
+                placeholder="Enter Plate Number"
+                required
+              />
+            </div>
+          }
           <div>
             <Label htmlFor="violation">Violation</Label>
             <Textarea

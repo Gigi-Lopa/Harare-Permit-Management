@@ -4,7 +4,6 @@ import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
-  Bus,
   LogOut
 } from "lucide-react"
 
@@ -15,6 +14,8 @@ import Vehicles from "@/components/tabs/admin/Vehicles"
 import Reports from "@/components/tabs/admin/Reports"
 import Officers from "@/components/tabs/admin/Officers"
 import Operators from "@/components/tabs/admin/Operators"
+import Logo from "@/styles/imgs/logo.png"
+import Image from "next/image"
 
 export default function AdminDashboardPage() {
   const {   
@@ -45,8 +46,8 @@ export default function AdminDashboardPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-3">
-              <div className="bg-blue-600 p-2 rounded-lg">
-                <Bus className="h-6 w-6 text-white" />
+              <div className="rounded-lg">
+                <Image src={Logo} alt="logo" className="w-auto h-[35px] rounded-md"/>
               </div>
               <div>
                 <h1 className="text-xl font-bold text-gray-900">Admin Dashboard</h1>

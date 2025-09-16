@@ -389,6 +389,8 @@ export default function RegisterVehiclePage() {
                   <Upload className="h-8 w-8 mx-auto text-gray-400 mb-2" />
                   <p className="text-sm font-medium">Vehicle Registration Certificate</p>
                   <p className="text-xs text-gray-500 mb-2">PDF, JPG, PNG (Max 5MB)</p>
+                  <p className="text-xs text-gray-500 mb-2">{formData.vehicleDocuments?.name}</p>
+
                   <Button
                     type="button"
                     variant="outline"
@@ -403,6 +405,8 @@ export default function RegisterVehiclePage() {
                   <Upload className="h-8 w-8 mx-auto text-gray-400 mb-2" />
                   <p className="text-sm font-medium">Insurance Certificate</p>
                   <p className="text-xs text-gray-500 mb-2">PDF, JPG, PNG (Max 5MB)</p>
+                  <p className="text-xs text-gray-500 mb-2">{formData.insuranceCertificates?.name}</p>
+
                   <Button 
                     variant="outline"
                     size="sm"
@@ -420,6 +424,7 @@ export default function RegisterVehiclePage() {
                   <Upload className="h-8 w-8 mx-auto text-gray-400 mb-2" />
                   <p className="text-sm font-medium">Driver's License</p>
                   <p className="text-xs text-gray-500 mb-2">PDF, JPG, PNG (Max 5MB)</p>
+                  <p className="text-xs text-gray-500 mb-2">{formData.driversLicenses?.name}</p>
                   <Button 
                     variant="outline"
                     type="button"

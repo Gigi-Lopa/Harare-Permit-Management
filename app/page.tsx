@@ -12,6 +12,10 @@ import { Eye, EyeOff, Bus, AlertCircle } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import type { LocalUser } from "@/types"
+import Logo from "@/styles/imgs/logo.png"
+import Image from "next/image"
+
+
 export default function LoginPage() {
   const [formData, setFormData] = useState({
     email: "",
@@ -74,8 +78,8 @@ export default function LoginPage() {
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
           <div className="flex justify-center">
-            <div className="bg-blue-600 p-3 rounded-full">
-              <Bus className="h-8 w-8 text-white" />
+            <div className="rounded-lg">
+              <Image src={Logo} alt="logo" className="w-auto h-[35px] rounded-md"/>
             </div>
           </div>
           <h2 className="mt-6 text-3xl font-bold text-gray-900">Sign in to your account</h2>

@@ -20,19 +20,21 @@ import {
 } from "lucide-react"
 import { AddViolationDialog } from "@/components/general/AddViolation"
 import useOfficer from "@/hooks/useOfficer"
+import Logo from "@/styles/imgs/logo.png"
+import Image from "next/image"
 
 export default function OfficerDashboardPage() {
-  const { 
-    user,
-    searchPlate,
-    vehicleInfo,
-    loading,
-    error,
-    searchHistory,
-    handleSearch,
-    AddViolation,
-    handleLogout,
-    setSearchPlate} = useOfficer();
+  const { user,
+        searchPlate,
+        vehicleInfo,
+        loading,
+        error,
+        searchHistory,
+        setError,
+        handleSearch,
+        AddViolation,
+        handleLogout,
+        setSearchPlate} = useOfficer();
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
@@ -63,8 +65,8 @@ export default function OfficerDashboardPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-3">
-              <div className="bg-green-600 p-2 rounded-lg">
-                <Shield className="h-6 w-6 text-white" />
+              <div className="rounded-lg">
+                <Image src={Logo} alt="logo" className="w-auto h-[35px] rounded-md"/>
               </div>
               <div>
                 <h1 className="text-xl font-bold text-gray-900">Officer Dashboard</h1>
@@ -105,10 +107,25 @@ export default function OfficerDashboardPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 {error && (
-                  <Alert variant="destructive">
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertDescription>{error}</AlertDescription>
-                  </Alert>
+                  <div>
+                    <Alert variant="destructive">
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertDescription>{error}</AlertDescription>
+                    </Alert>
+                    <div className="flex items-center justify-center mt-5">
+                      <AddViolationDialog
+                        user = {user}
+                        vehicleId={"UNKNOWN"}
+                        onViolationAdded={(v:any, isUnknown: boolean) => {
+                          if (isUnknown) {
+                            alert("Violation successfully ended")
+                            return setError("")
+                          };
+                          AddViolation(v)
+                        }}
+                      />
+                    </div>
+                  </div>
                 )}
 
                 <div className="flex space-x-4">
@@ -145,11 +162,14 @@ export default function OfficerDashboardPage() {
                 </CardHeader>
                 <CardContent>
                   {vehicleInfo.status === "not_found" ? (
-                    <div className="text-center py-8">
-                      <XCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">Vehicle Not Found</h3>
-                      <p className="text-gray-600">No vehicle found with license plate {vehicleInfo.licensePlate}</p>
+                    <div>
+                        <div className="text-center py-8">
+                          <XCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                          <h3 className="text-lg font-medium text-gray-900 mb-2">Vehicle Not Found</h3>
+                          <p className="text-gray-600">No vehicle found with license plate {vehicleInfo.licensePlate}</p>
+                        </div>
                     </div>
+                    
                   ) : (
                     <div className="space-y-6">
                       <div>

@@ -1316,15 +1316,21 @@ def get_violations(admin):
         for v in violations_cursor:
             officer = officers_collection.find_one({"_id": ObjectId(v.get("officer_id"))})
             vehicle_owner = ""
-
-            vehicle = vehicles_collection.find_one({"_id": ObjectId(v.get("vehicle_id"))})
-            if vehicle:
-                owner = users_collection.find_one({"_id": ObjectId(vehicle.get("ownerID"))})
-                if owner:
-                    vehicle_owner = f"{owner.get('firstName', '')} {owner.get('lastName', '')}".strip()
+            plate = ""
+            try:
+                vehicle = vehicles_collection.find_one({"_id": ObjectId(v.get("vehicle_id"))})
+                if vehicle:
+                    owner = users_collection.find_one({"_id": ObjectId(vehicle.get("ownerID"))})
+                    plate = owner.get("registrationNumber")
+                    if owner:
+                        vehicle_owner = f"{owner.get('firstName', '')} {owner.get('lastName', '')}".strip()
+            
+            except InvalidId:
+                vehicle_owner = "Not registered"
 
             violations.append({
                 "_id": str(v["_id"]),
+                "plate" : v.get("plate", plate),
                 "vehicle_owner": vehicle_owner,
                 "officer_name": f"{officer.get('firstName', '')} {officer.get('lastName', '')}" if officer else "N/A",
                 "violation": v.get("violation"),
@@ -1473,13 +1479,18 @@ def add_violation(officer, vehicle_id):
     data = request.get_json()
     if not data:
         return jsonify({"error": "Missing violation data"}), 400
+    try:
+        V_ID =  ObjectId(vehicle_id)
+    except InvalidId:
+        V_ID = vehicle_id
 
     violation = {
         "_id": ObjectId(),
-        "vehicle_id": ObjectId(vehicle_id),
+        "vehicle_id": V_ID,
         "officer_id": ObjectId(officer.get("_id")),
         "violation": data.get("violation"),
         "fine": data.get("fine"),
+        "plate" : data.get("plate", ""),
         "date": datetime.now(cat_tz).strftime("%Y-%m-%d"),
         "status": "unpaid",
     }
@@ -1500,6 +1511,7 @@ def add_violation(officer, vehicle_id):
 """
 #### UNIVERSAL ROUTES
 """
+
 @app.route('/api/files/download', methods=['GET'])
 def download_file():
     try:

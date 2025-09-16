@@ -36,11 +36,39 @@ export default function RegisterPage() {
   const [success, setSuccess] = useState("")
   const router = useRouter()
 
+  function validatePassword(password: string): { valid: boolean; message: string } {
+    if (password.length < 8) {
+      return { valid: false, message: "Password must be at least 8 characters long." }
+    }
+    if (!/[a-z]/.test(password)) {
+      return { valid: false, message: "Password must contain at least one lowercase letter." }
+    }
+    if (!/[A-Z]/.test(password)) {
+      return { valid: false, message: "Password must contain at least one uppercase letter." }
+    }
+    if (!/\d/.test(password)) {
+      return { valid: false, message: "Password must contain at least one number." }
+    }
+    if (!/[@$!%*?&]/.test(password)) {
+      return { valid: false, message: "Password must contain at least one special character (@$!%*?&)." }
+    }
+
+    return { valid: true, message: "Password is valid." }
+  }
+
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError("")
     setSuccess("")
+
+    const isPassword = validatePassword(formData.password)
+    if(!isPassword.valid){
+      setError(isPassword.message)
+      setLoading(false)
+      return;
+    }
 
     // Validation
     if (formData.password !== formData.confirmPassword) {
@@ -48,6 +76,7 @@ export default function RegisterPage() {
       setLoading(false)
       return
     }
+
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/register`, {
         method: "POST",
