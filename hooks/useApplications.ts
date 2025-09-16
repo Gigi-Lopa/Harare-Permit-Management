@@ -1,12 +1,12 @@
 import type React from "react"
 import { useRef, useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import type{ LocalUser } from "@/types";
+import type{ LocalUser, Operator, OperatorFormData } from "@/types";
 import useGetUserInfor from "./useGetUserInfor";
 export default function useApplication(){
   const router = useRouter();
   const [user, setUser] = useState<LocalUser | null>(null)
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<OperatorFormData>({
     operatorName: "",
     contactPerson: "",
     email: "",
@@ -19,7 +19,7 @@ export default function useApplication(){
     operatingHours: "",
     description: "",
     agreedToTerms: false,
-    businessRegistrationCertificate: null,
+    businessRegistrationCertificate: null ,
     vehicleDocuments: null,
     insuranceCertificates: null,
     driversLicenses: null,

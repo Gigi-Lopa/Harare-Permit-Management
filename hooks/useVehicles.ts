@@ -31,11 +31,12 @@ export default function useVehicles(){
     driverLicenseNumber: "",
     driverLicenseExpiry: "",
     agreeToTerms: false,
-    vehicleDocuments: null,
-    insuranceCertificates: null,  
-    driversLicenses: null,
+    vehicleDocuments: null as File | null,
+    insuranceCertificates: null as File | null,  
+    driversLicenses: null as File | null,
     ownerID: "",
   })
+  
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")

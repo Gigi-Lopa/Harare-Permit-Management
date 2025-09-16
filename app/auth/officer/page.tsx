@@ -12,6 +12,8 @@ import { Eye, EyeOff, Shield, AlertCircle } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import type { LocalUser } from "@/types"
+import Logo from "@/styles/imgs/logo.png"
+import Image from "next/image"
 
 export default function OfficerLoginPage() {
   const [formData, setFormData] = useState({
@@ -70,9 +72,9 @@ export default function OfficerLoginPage() {
         {/* Header */}
         <div className="text-center">
           <div className="flex justify-center">
-            <div className="bg-green-600 p-3 rounded-full">
-              <Shield className="h-8 w-8 text-white" />
-            </div>
+              <div className="rounded-lg">
+                <Image src={Logo} alt="logo" className="w-auto h-[35px] rounded-md"/>
+              </div>
           </div>
           <h2 className="mt-6 text-3xl font-bold text-gray-900">Officer Portal</h2>
           <p className="mt-2 text-sm text-gray-600">Harare City Council - Traffic Enforcement</p>
